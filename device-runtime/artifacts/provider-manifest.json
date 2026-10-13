@@ -1,0 +1,13 @@
+{
+  "version": "0.2.5",
+  "package": "org.relaykite.runtime",
+  "apk_sha256": "a1826d914cf303ec988858ff9b2ab693d833fbd7697c2fbf6f0c0e9b25ed6192",
+  "dex_sha256": "8d344272d9b8d3bd3b06974d3e0725434b47f3b9e9d9ba0e0487ad631d3463b6",
+  "r8_sha256": "cd849dec47fe15ff349199162d7a6caaffd8548703fcb167d5c450afe8b67180",
+  "android_jar_sha256": "aec874bb691a604a64b93c907b65c26bcc1311050e09413cf050bc5bd9e68488",
+  "source_sha256": {
+    "java/org/relaykite/runtime/ScopedFileProvider.java": "fe7d505c5b40aeaa7e0fdc8254cde862e24bfd4366a4cbd766e73eae81ec9db5",
+    "java/org/relaykite/runtime/ScopedFiles.java": "00ca765e5239d1ab58046ed98ef47dc2bd3684e9a688090bb15c3509160b2f55",
+    "AndroidManifest.xml": "412541c8f0aaf0d9a4e7a5b6c2c1ed5250bda598dba69e4c0251f153c0118586"
+  }
+}
