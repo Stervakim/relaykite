@@ -9,10 +9,11 @@ DEFAULT_CONFIG=Path('/data/adb/mini-codex/memory-service.json')
 class MemoryUnavailable(RuntimeError):pass
 
 def allocated_bytes(path:Path)->int:
-    if not path.exists():return 0
     if path.is_symlink():raise ValueError('Storage symlink rejected')
+    if not path.exists():return 0
     if path.is_file():
         s=path.stat();return getattr(s,'st_blocks',0)*512 or s.st_size
+    if not path.is_dir():return 0  # IPC sockets/FIFOs do not contain stored records.
     return sum(allocated_bytes(p) for p in path.iterdir())
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):

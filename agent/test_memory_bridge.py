@@ -1,10 +1,18 @@
-import json, tempfile, unittest, sys
+import json, tempfile, unittest, sys, socket
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).parent))
 from memory_bridge import MemoryBridge
 
 class BridgeTests(unittest.TestCase):
+ @unittest.skipUnless(hasattr(socket,'AF_UNIX'),'Unix socket required')
+ def test_accounting_ignores_live_ipc_socket_but_counts_regular_storage(self):
+  from memory_bridge import allocated_bytes
+  with tempfile.TemporaryDirectory() as d:
+   p=Path(d)/'bytes';p.write_bytes(b'owned-data')
+   with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as endpoint:
+    endpoint.bind(str(Path(d)/'managed.sock'))
+    self.assertGreaterEqual(allocated_bytes(Path(d)),10)
  def test_missing_config_is_explicit(self):
   b=MemoryBridge(Path('missing-memory-config.json'))
   self.assertFalse(b.configured)
