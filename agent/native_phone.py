@@ -107,13 +107,54 @@ def phone_status() -> dict:
     props = shell('getprop ro.product.model; getprop ro.build.version.release; getprop ro.build.version.incremental', root=False).splitlines()
     battery = shell('dumpsys battery', root=False)
     level = re.search('level:\\s*(\\d+)', battery)
-    result = {'state': state, 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id')}
+    result = {'state': state, 'observed_at': time.time(), 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id')}
     try:
         from support_runtime import get_context
         result['support'] = get_context(SUPPORT_BASE)
     except (ImportError, OSError, ValueError):
         result['support'] = {'state': 'unavailable', 'skill_path': str(SUPPORT_BASE/'support'/'SKILL.md')}
+    result['operation_statistics']=operation_statistics()
+    # Report discovery only; socket presence is not a responsiveness check.
+    try:
+        portable=Path('/data/adb/codaki-portable-use/state/portable.sock').lstat()
+        private=stat.S_ISSOCK(portable.st_mode) and portable.st_uid==0 and not portable.st_mode & 0o077
+    except OSError:
+        private=False
+    result['portable_use']={'state':'socket-present' if private else 'unavailable',
+        'entrypoint':str(BASE/'portable_peer.py'),
+        'instruction':'Use portable_peer capabilities, then session_start and observe on its owned nonzero display. Stable request IDs prevent replay. A batch stops on its first failure; completed steps are not rolled back.'}
     return result
+
+
+def operation_statistics() -> dict:
+    """Read bounded aggregate timings; no job inputs, output bodies or secrets."""
+    path=SUPPORT_BASE/'state'/'jobs.sqlite3'
+    if not path.is_file() or path.is_symlink():
+        return {'state':'unavailable','tools':[]}
+    try:
+        db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=0.1)
+        try:
+            rows=db.execute('SELECT tool,calls,errors,total_ms,max_ms,first_at,last_at FROM tool_metrics ORDER BY total_ms DESC LIMIT 30').fetchall()
+            queue=db.execute("SELECT COUNT(*),MIN(updated),COALESCE(SUM(status='uncertain'),0) FROM jobs WHERE status IN ('completed','uncertain') AND id NOT IN (SELECT id FROM delivered)").fetchone()
+            started=db.execute("SELECT COUNT(*) FROM jobs WHERE status='started'").fetchone()[0]
+        finally:
+            db.close()
+    except (OSError,sqlite3.Error):
+        return {'state':'unavailable','tools':[]}
+    observed=time.time()
+    age=max(0,round(observed-queue[1],2)) if queue[1] is not None else None
+    findings=[]
+    if queue[0] and age is not None and age>30:
+        findings.append('Result delivery has been pending over 30 seconds. Check connectivity; do not repeat the Android action.')
+    if queue[2]:
+        findings.append('Some pending outcomes are uncertain. Inspect the actual phone state before deciding on a retry.')
+    return {'state':'ready','observed_at':observed,
+            'journal':{'pending_delivery':queue[0],'oldest_pending_seconds':age,'pending_uncertain':queue[2],'in_progress':started},
+            'findings':findings,
+            'scope':'Local executor time only; excludes relay/network/model latency. Counts since instrumentation was enabled.',
+            'tools':[{'tool':r[0],'calls':r[1],'errors':r[2],'average_ms':round(r[3]/r[1],2) if r[1] else 0,
+                      'max_ms':round(r[4],2),'first_at':r[5],'last_at':r[6]} for r in rows]}
+
 
 def read_ui(limit: int=120) -> dict:
     """Read fresh visible Android UI nodes with bounds; password/private identifiers are redacted."""
@@ -453,13 +494,21 @@ def phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> 
 def phone_memory_search(query: str, limit: int=10) -> dict:
     if not isinstance(query,str) or len(query)>2000 or not 1<=limit<=30:
         raise ValueError('Invalid memory query/limit')
+    # SQLite LIKE only folds ASCII by default. Fold Unicode explicitly and
+    # treat punctuation literally, including SQL wildcard characters.
+    phrase=redact_memory(query).strip().casefold()
+    terms=tuple(dict.fromkeys(phrase.split()))
+    def memory_rank(title,content,tags):
+        fields=tuple((value or '').casefold() for value in (title,content,tags))
+        if any(phrase in field for field in fields):
+            return 2
+        return int(all(any(term in field for field in fields) for term in terms))
     with LOCK:
         db=memory_database()
         try:
-            escaped=redact_memory(query).replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
-            pattern='%'+escaped+'%'
-            rows=db.execute("SELECT id,title,content,tags,updated FROM notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' ORDER BY updated DESC LIMIT ?",(pattern,pattern,pattern,limit)).fetchall()
-            archive_rows=db.execute("SELECT id,title,summary,tags,updated FROM archives WHERE title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' ORDER BY updated DESC LIMIT ?",(pattern,pattern,pattern,limit-len(rows))).fetchall()
+            db.create_function('memory_rank',3,memory_rank,deterministic=True)
+            rows=db.execute('SELECT id,title,content,tags,updated,memory_rank(title,content,tags) AS relevance FROM notes WHERE relevance>0 ORDER BY relevance DESC,updated DESC LIMIT ?',(limit,)).fetchall()
+            archive_rows=db.execute('SELECT id,title,summary,tags,updated,memory_rank(title,summary,tags) AS relevance FROM archives WHERE relevance>0 ORDER BY relevance DESC,updated DESC LIMIT ?',(limit-len(rows),)).fetchall()
         finally:
             db.close()
     return {'notes':[{'id':r[0],'title':r[1],'content':r[2],'tags':json.loads(r[3]),'updated':r[4],'archived':False} for r in rows]+[{'id':r[0],'title':r[1],'content':r[2],'tags':json.loads(r[3]),'updated':r[4],'archived':True} for r in archive_rows]}

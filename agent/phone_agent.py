@@ -5,6 +5,7 @@ import argparse
 import hashlib
 import json
 import logging
+import math
 from logging.handlers import RotatingFileHandler
 import os
 from pathlib import Path
@@ -21,6 +22,7 @@ import native_phone
 
 MAX_JOURNAL=5*1024*1024
 MAX_RESULT=4*1024*1024-8192
+RESULT_RETENTION_SECONDS=900
 
 
 class BoundedStartupWriter:
@@ -52,8 +54,6 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-from network_route import choose_proxy
-
 class Relay:
     def __init__(self,config:dict):
         parsed=urllib.parse.urlparse(config['relay_url'])
@@ -66,21 +66,14 @@ class Relay:
         self.headers={'Authorization':'Bearer '+token,'Accept':'application/json'}
         if config.get('sites_authorization'):
             self.headers['OAI-Sites-Authorization']=config['sites_authorization']
-        self.configured_proxy=config.get('outbound_proxy','')
-        proxy=choose_proxy(self.configured_proxy)
-        self.selected_proxy=proxy
+        proxy=config.get('outbound_proxy','')
         # Explicit local VLESS HTTP proxy overrides ambient shell proxy settings.
         # A blank value preserves the default urllib environment behavior.
-        proxy_handler=urllib.request.ProxyHandler({'https':proxy}) if proxy else urllib.request.ProxyHandler({} if self.configured_proxy else None)
+        proxy_handler=urllib.request.ProxyHandler({'https':proxy}) if proxy else urllib.request.ProxyHandler()
         self.opener=urllib.request.build_opener(NoRedirect(),proxy_handler,
                                                  urllib.request.HTTPSHandler(context=ssl.create_default_context()))
 
     def request(self,path:str,body:dict|None=None):
-        proxy=choose_proxy(self.configured_proxy)
-        if proxy!=self.selected_proxy:
-            proxy_handler=urllib.request.ProxyHandler({"https":proxy} if proxy else ({} if self.configured_proxy else None))
-            self.opener=urllib.request.build_opener(NoRedirect(),proxy_handler,urllib.request.HTTPSHandler(context=ssl.create_default_context()))
-            self.selected_proxy=proxy
         headers=self.headers.copy()
         data=None if body is None else json.dumps(body,ensure_ascii=False,separators=(',',':')).encode('utf-8')
         if data is not None:
@@ -110,6 +103,9 @@ class Journal:
         os.chmod(self.path,0o600)
         self.db.execute('PRAGMA journal_mode=DELETE')
         self.db.execute('CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY,expires REAL,args_hash TEXT,status TEXT,result TEXT,updated REAL)')
+        self.db.execute('CREATE TABLE IF NOT EXISTS delivered (id TEXT PRIMARY KEY)')
+        self.db.execute('CREATE TABLE IF NOT EXISTS tool_metrics (tool TEXT PRIMARY KEY,calls INTEGER,errors INTEGER,total_ms REAL,max_ms REAL,first_at REAL,last_at REAL)')
+        self.known_tools={definition['name'] for definition in native_phone.tool_definitions()}
         # The previous process might have performed an action before crashing.
         uncertain=json.dumps(error_result('Previous process stopped during this job. Outcome is uncertain; inspect the device before deciding what to do.'))
         self.db.execute("UPDATE jobs SET status='uncertain',result=? WHERE status='started'",(uncertain,))
@@ -117,13 +113,21 @@ class Journal:
         self.compact()
 
     def compact(self):
-        # Expired IDs can be purged because every fetched job is also checked
-        # against its original expires_at BEFORE execution. Never renew expiry.
-        self.db.execute('DELETE FROM jobs WHERE expires<?',(time.time(),))
+        # Execution deadlines and result delivery are separate. Keep expired
+        # outcomes for the relay's 15-minute recovery window, within the size
+        # cap. Purged jobs still cannot run after their original deadline.
+        now=time.time()
+        self.db.execute('DELETE FROM jobs WHERE expires<? AND updated<?',
+                        (now,now-RESULT_RETENTION_SECONDS))
+        self.db.execute('DELETE FROM delivered WHERE id NOT IN (SELECT id FROM jobs)')
         tombstone=json.dumps(error_result('Cached output was compacted. This action already ran or has an uncertain outcome; automatic re-execution remains blocked.'))
         self.db.execute("UPDATE jobs SET result=?,status='uncertain' WHERE status!='started' AND id NOT IN (SELECT id FROM jobs ORDER BY updated DESC LIMIT 100) AND (status!='uncertain' OR length(result)>?)",(tombstone,len(tombstone)))
         self.db.commit()
-        self.db.execute('VACUUM')
+        # Free pages can be reused by subsequent jobs. Rebuild only when the
+        # file exceeds its budget; durable commits and replay protection stay
+        # on every action's path.
+        if self.path.stat().st_size>MAX_JOURNAL:
+            self.db.execute('VACUUM')
         while self.path.stat().st_size>MAX_JOURNAL:
             row=self.db.execute("SELECT id FROM jobs WHERE status!='started' AND length(result)>? ORDER BY updated ASC LIMIT 1",(len(tombstone),)).fetchone()
             if not row: raise RuntimeError('Journal full; refusing to run an unjournaled action')
@@ -139,13 +143,30 @@ class Journal:
         self.db.execute("INSERT INTO jobs VALUES(?,?,?,'started',NULL,?)",(ident,expires,fingerprint,time.time()))
         self.db.commit()  # Must be durable before any Android command.
 
-    def finish(self,ident,result,status='completed'):
+    def pending(self):
+        return [(ident,json.loads(raw),status) for ident,raw,status in self.db.execute("SELECT id,result,status FROM jobs WHERE status IN ('completed','uncertain') AND result IS NOT NULL AND id NOT IN (SELECT id FROM delivered) ORDER BY updated")]
+
+    def delivered(self,ident):
+        self.db.execute('INSERT OR IGNORE INTO delivered VALUES (?)',(ident,))
+        self.db.commit()
+
+    def finish(self,ident,result,status='completed',tool=None,duration_ms=None):
         payload=json.dumps(result,ensure_ascii=False,separators=(',',':'))
         if len(payload.encode('utf-8'))>MAX_RESULT:
             result=error_result('Tool output exceeds transport/cache limits. Use a bounded read or read_ui instead of a large screenshot.')
             payload=json.dumps(result)
         self.db.execute('UPDATE jobs SET status=?,result=?,updated=? WHERE id=?',(status,payload,time.time(),ident))
         self.db.commit()
+        # Aggregate only fixed tool names and timing, never arguments/results.
+        # Optional observability must not invalidate a durably saved outcome.
+        if tool in self.known_tools and duration_ms is not None:
+            try:
+                now=time.time()
+                self.db.execute('INSERT INTO tool_metrics VALUES(?,1,?,?,?,?,?) ON CONFLICT(tool) DO UPDATE SET calls=calls+1,errors=errors+excluded.errors,total_ms=total_ms+excluded.total_ms,max_ms=max(max_ms,excluded.max_ms),last_at=excluded.last_at',
+                                (tool,int(bool(result.get('isError')) or status=='uncertain'),duration_ms,duration_ms,now,now))
+                self.db.commit()
+            except sqlite3.Error:
+                self.db.rollback()
         self.compact()
         return result
 
@@ -157,7 +178,7 @@ def execute_job(job:dict,journal:Journal,executor=native_phone.dispatch,disabled
     tool=job.get('tool')
     arguments=job.get('arguments')
     expires=job.get('expires_at')
-    if not isinstance(tool,str) or not isinstance(arguments,dict) or type(expires) not in (int,float):
+    if not isinstance(tool,str) or not isinstance(arguments,dict) or type(expires) not in (int,float) or not math.isfinite(expires):
         raise ValueError('Invalid job shape')
     fingerprint=hashlib.sha256(json.dumps({'tool':tool,'arguments':arguments},sort_keys=True,separators=(',',':')).encode()).hexdigest()
     previous=journal.get(ident)
@@ -169,16 +190,22 @@ def execute_job(job:dict,journal:Journal,executor=native_phone.dispatch,disabled
         return ident,previous['result'],previous['status']
     now=time.time()
     if expires<=now or expires>now+300:
-        return ident,error_result('Job expired or deadline is invalid; no action was executed.'),'uncertain'
+        # Persist the rejection too: the worker delivers from pending(), not
+        # from this return value. This record represents no Android execution.
+        journal.compact()
+        journal.start(ident,now,fingerprint)
+        result=error_result('Job expired or deadline is invalid; no action was executed.')
+        return ident,journal.finish(ident,result,'uncertain'),'uncertain'
     if disabled(): raise InterruptedError('Phone agent is disabled')
     journal.compact()
     journal.start(ident,expires,fingerprint)
+    started=time.monotonic()
     try:
         result=executor(tool,arguments)
     except Exception:
         result=error_result('Executor stopped unexpectedly. Outcome is uncertain; inspect the device before retrying.')
-        return ident,journal.finish(ident,result,'uncertain'),'uncertain'
-    return ident,journal.finish(ident,result),'completed'
+        return ident,journal.finish(ident,result,'uncertain',tool,(time.monotonic()-started)*1000),'uncertain'
+    return ident,journal.finish(ident,result,tool=tool,duration_ms=(time.monotonic()-started)*1000),'completed'
 
 
 def acquire_instance_lock(state:Path):
@@ -193,6 +220,21 @@ def acquire_instance_lock(state:Path):
         handle.close()
         raise RuntimeError('Another phone agent owns this state directory; refusing a second worker') from None
     return handle
+
+
+def flush_results(relay,journal):
+    for ident,result,status in journal.pending():
+        try:
+            receipt=relay.result(ident,result,status)
+        except urllib.error.HTTPError as exc:
+            if exc.code not in (404,410):
+                raise
+            exc.close()
+            journal.delivered(ident)
+            continue
+        if not isinstance(receipt,dict) or receipt.get('ok') is not True:
+            raise ValueError('Relay did not acknowledge result persistence')
+        journal.delivered(ident)
 
 
 def run_agent(config:dict,state:Path):
@@ -212,30 +254,38 @@ def run_agent(config:dict,state:Path):
     signal.signal(signal.SIGINT,terminate)
     def disabled(): return stop or (disable_file is not None and disable_file.exists())
     delay=max(1,min(30,float(config.get('poll_seconds',3))))
+    retry_delay=delay
     logger.info('Agent started; no network listener; authenticated outbound polling only')
     try:
         while not disabled():
             try:
+                flush_results(relay,journal)
                 job=relay.next_job()
+                retry_delay=delay  # A successful poll restores normal responsiveness.
                 if job and not disabled():
                     ident,result,status=execute_job(job,journal,disabled=disabled)
                     # Local result is cached first; if POST fails the next delivery
                     # resubmits the cache and never repeats the root action.
-                    relay.result(ident,result,status)
+                    flush_results(relay,journal)
                     logger.info('Job %s: %s',ident,status)
                     continue
             except urllib.error.HTTPError as exc:
                 logger.warning('Relay HTTP status %s',exc.code)
+                exc.close()
+                retry_delay=min(30,retry_delay*2)
             except InterruptedError:
                 break
             except Exception as exc:
                 logger.warning('Worker event: %s',type(exc).__name__)
-            for _ in range(int(delay*10)):
+                retry_delay=min(30,retry_delay*2)
+            for _ in range(int(retry_delay*10)):
                 if disabled(): break
                 time.sleep(.1)
     finally:
         journal.db.close()
         logger.info('Agent stopped; no further jobs will execute')
+        logger.removeHandler(handler)
+        handler.close()
 
 
 def main():
@@ -276,3 +326,4 @@ if __name__=='__main__':
         # Configuration values and exception text can contain credentials.
         print('Agent failed: '+type(exc).__name__,file=sys.stderr)
         sys.exit(1)
+
