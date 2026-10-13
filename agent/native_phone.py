@@ -107,13 +107,54 @@ def phone_status() -> dict:
     props = shell('getprop ro.product.model; getprop ro.build.version.release; getprop ro.build.version.incremental', root=False).splitlines()
     battery = shell('dumpsys battery', root=False)
     level = re.search('level:\\s*(\\d+)', battery)
-    result = {'state': state, 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id')}
+    result = {'state': state, 'observed_at': time.time(), 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id')}
     try:
         from support_runtime import get_context
         result['support'] = get_context(SUPPORT_BASE)
     except (ImportError, OSError, ValueError):
         result['support'] = {'state': 'unavailable', 'skill_path': str(SUPPORT_BASE/'support'/'SKILL.md')}
+    result['operation_statistics']=operation_statistics()
+    # Report discovery only; socket presence is not a responsiveness check.
+    try:
+        portable=Path('/data/adb/codaki-portable-use/state/portable.sock').lstat()
+        private=stat.S_ISSOCK(portable.st_mode) and portable.st_uid==0 and not portable.st_mode & 0o077
+    except OSError:
+        private=False
+    result['portable_use']={'state':'socket-present' if private else 'unavailable',
+        'entrypoint':str(BASE/'portable_peer.py'),
+        'instruction':'Use portable_peer capabilities, then session_start and observe on its owned nonzero display. Stable request IDs prevent replay. A batch stops on its first failure; completed steps are not rolled back.'}
     return result
+
+
+def operation_statistics() -> dict:
+    """Read bounded aggregate timings; no job inputs, output bodies or secrets."""
+    path=SUPPORT_BASE/'state'/'jobs.sqlite3'
+    if not path.is_file() or path.is_symlink():
+        return {'state':'unavailable','tools':[]}
+    try:
+        db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=0.1)
+        try:
+            rows=db.execute('SELECT tool,calls,errors,total_ms,max_ms,first_at,last_at FROM tool_metrics ORDER BY total_ms DESC LIMIT 30').fetchall()
+            queue=db.execute("SELECT COUNT(*),MIN(updated),COALESCE(SUM(status='uncertain'),0) FROM jobs WHERE status IN ('completed','uncertain') AND id NOT IN (SELECT id FROM delivered)").fetchone()
+            started=db.execute("SELECT COUNT(*) FROM jobs WHERE status='started'").fetchone()[0]
+        finally:
+            db.close()
+    except (OSError,sqlite3.Error):
+        return {'state':'unavailable','tools':[]}
+    observed=time.time()
+    age=max(0,round(observed-queue[1],2)) if queue[1] is not None else None
+    findings=[]
+    if queue[0] and age is not None and age>30:
+        findings.append('Result delivery has been pending over 30 seconds. Check connectivity; do not repeat the Android action.')
+    if queue[2]:
+        findings.append('Some pending outcomes are uncertain. Inspect the actual phone state before deciding on a retry.')
+    return {'state':'ready','observed_at':observed,
+            'journal':{'pending_delivery':queue[0],'oldest_pending_seconds':age,'pending_uncertain':queue[2],'in_progress':started},
+            'findings':findings,
+            'scope':'Local executor time only; excludes relay/network/model latency. Counts since instrumentation was enabled.',
+            'tools':[{'tool':r[0],'calls':r[1],'errors':r[2],'average_ms':round(r[3]/r[1],2) if r[1] else 0,
+                      'max_ms':round(r[4],2),'first_at':r[5],'last_at':r[6]} for r in rows]}
+
 
 def read_ui(limit: int=120) -> dict:
     """Read fresh visible Android UI nodes with bounds; password/private identifiers are redacted."""
@@ -417,7 +458,7 @@ def compact_memory(db: sqlite3.Connection) -> int:
         db.execute('VACUUM')
 
 
-def phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> dict:
+def _legacy_phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> dict:
     if not isinstance(title,str) or not title.strip() or len(title)>160:
         raise ValueError('Title must be 1..160 characters')
     if not isinstance(content,str) or not content.strip() or len(content.encode('utf-8'))>6144:
@@ -450,19 +491,121 @@ def phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> 
     return {'saved':True,'title':clean_title,'notes_count':count,'archive_count':archive_count,'bytes':size,'max_bytes':MAX_MEMORY_BYTES,'total_storage_cap_bytes':TOTAL_STORAGE_BYTES,'agent_reserve_bytes':AGENT_STORAGE_RESERVE_BYTES,'redacted':clean_title!=title.strip() or clean_content!=content.strip() or clean_tags!=tags}
 
 
-def phone_memory_search(query: str, limit: int=10) -> dict:
+def _legacy_phone_memory_search(query: str, limit: int=10) -> dict:
     if not isinstance(query,str) or len(query)>2000 or not 1<=limit<=30:
         raise ValueError('Invalid memory query/limit')
+    # SQLite LIKE only folds ASCII by default. Fold Unicode explicitly and
+    # treat punctuation literally, including SQL wildcard characters.
+    phrase=redact_memory(query).strip().casefold()
+    terms=tuple(dict.fromkeys(phrase.split()))
+    def memory_rank(title,content,tags):
+        fields=tuple((value or '').casefold() for value in (title,content,tags))
+        if any(phrase in field for field in fields):
+            return 2
+        return int(all(any(term in field for field in fields) for term in terms))
     with LOCK:
         db=memory_database()
         try:
-            escaped=redact_memory(query).replace('\\','\\\\').replace('%','\\%').replace('_','\\_')
-            pattern='%'+escaped+'%'
-            rows=db.execute("SELECT id,title,content,tags,updated FROM notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' ORDER BY updated DESC LIMIT ?",(pattern,pattern,pattern,limit)).fetchall()
-            archive_rows=db.execute("SELECT id,title,summary,tags,updated FROM archives WHERE title LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' ORDER BY updated DESC LIMIT ?",(pattern,pattern,pattern,limit-len(rows))).fetchall()
+            db.create_function('memory_rank',3,memory_rank,deterministic=True)
+            rows=db.execute('SELECT id,title,content,tags,updated,memory_rank(title,content,tags) AS relevance FROM notes WHERE relevance>0 ORDER BY relevance DESC,updated DESC LIMIT ?',(limit,)).fetchall()
+            archive_rows=db.execute('SELECT id,title,summary,tags,updated,memory_rank(title,summary,tags) AS relevance FROM archives WHERE relevance>0 ORDER BY relevance DESC,updated DESC LIMIT ?',(limit-len(rows),)).fetchall()
         finally:
             db.close()
     return {'notes':[{'id':r[0],'title':r[1],'content':r[2],'tags':json.loads(r[3]),'updated':r[4],'archived':False} for r in rows]+[{'id':r[0],'title':r[1],'content':r[2],'tags':json.loads(r[3]),'updated':r[4],'archived':True} for r in archive_rows]}
+
+
+def _memory_bridge():
+    from memory_bridge import MemoryBridge
+    return MemoryBridge()
+
+
+def phone_memory_save(title: str, content: str, tags: list[str] | None=None, memory: dict | None=None) -> dict:
+    from memory_bridge import MemoryUnavailable
+    bridge=_memory_bridge()
+    if not bridge.configured:
+        if memory is not None: raise RuntimeError('Tencent memory is not configured; structured memory was not saved')
+        return {**_legacy_phone_memory_save(title,content,tags),'engine':'legacy'}
+    if not isinstance(title,str) or not title.strip() or len(title)>160: raise ValueError('Invalid memory title')
+    if not isinstance(content,str) or not content.strip() or len(content.encode('utf-8'))>6144: raise ValueError('Memory content must be at most 6 KiB')
+    tags=[] if tags is None else tags
+    if not isinstance(tags,list) or len(tags)>20 or any(not isinstance(t,str) or len(t)>50 for t in tags): raise ValueError('Invalid memory tags')
+    if 'data:image/' in content.lower() or re.search(r'[A-Za-z0-9+/]{1024,}={0,2}',content): raise ValueError('Store summaries, not binary exports')
+    if memory is not None and not isinstance(memory,dict): raise ValueError('Invalid structured memory')
+    clean_memory=None if memory is None else {k:redact_memory(v) if isinstance(v,str) else v for k,v in memory.items()}
+    try:
+        result=bridge.save(redact_memory(title.strip()),redact_memory(content.strip()),[redact_memory(t) for t in tags],clean_memory)
+        return {**result,'redacted':redact_memory(content.strip())!=content.strip()}
+    except MemoryUnavailable:
+        if memory is not None: raise
+        return {**_legacy_phone_memory_save(title,content,tags),'engine':'legacy-fallback','warning':'Tencent is unavailable; saved in original legacy memory'}
+
+
+def phone_memory_search(query: str, limit: int=5, filters: dict | None=None) -> dict:
+    from memory_bridge import MemoryUnavailable
+    if not isinstance(query,str) or len(query)>2000 or isinstance(limit,bool) or not isinstance(limit,int) or not 1<=limit<=30: raise ValueError('Invalid memory query/limit')
+    bridge=_memory_bridge()
+    if not bridge.configured:
+        if filters: raise RuntimeError('Tencent memory filters are not configured')
+        return {**_legacy_phone_memory_search(query,limit),'engine':'legacy'}
+    try:
+        result=bridge.search(redact_memory(query),limit,filters)
+        if filters:return result
+        # Transitional read-only merge: outage writes in legacy remain visible.
+        legacy=_legacy_phone_memory_search(query,limit)['notes']
+        current=result.get('notes',[])
+        def duplicate(old):
+            source='legacy:'+('archives' if old.get('archived') else 'notes')+':'+str(old['id'])
+            return any((x.get('memory',{}).get('source_id')==source and (old.get('archived') or
+                       old.get('updated',0)<=x.get('updated',0) or
+                       (x.get('truncated') and old.get('content','').startswith(x.get('content',''))))) or
+                       (x.get('title')==old.get('title') and x.get('memory',{}).get('device')=='android' and
+                        x.get('memory',{}).get('project') in ('','codaki') and old.get('updated',0)<=x.get('updated',0)) or
+                       (x.get('title')==old.get('title') and x.get('content')==old.get('content') and x.get('tags')==old.get('tags')) for x in current)
+        extra=[{**x,'engine':'legacy','memory':{'layer':'L0' if x.get('archived') else 'L1','status':'historical','source':'legacy SQLite; not reconciled'}} for x in legacy if not duplicate(x)]
+        if not extra:return result
+        result={**result,'engine':'tencentdb-original-external+legacy','warning':'Includes legacy evidence; reconcile newer legacy notes explicitly.',
+                'notes':(extra+[{**x,'engine':'tencentdb-original-external'} for x in current])[:limit]}
+        while len(json.dumps(result,ensure_ascii=False).encode())>6144 and len(result['notes'])>1:result['notes'].pop()
+        if result['notes']:
+            note=result['notes'][0]
+            while len(json.dumps(result,ensure_ascii=False).encode())>6144 and note.get('content'):
+                note['content']=note['content'][:-64];note['truncated']=True
+        if len(json.dumps(result,ensure_ascii=False).encode())>6144:raise ValueError('Memory metadata exceeds response budget')
+        return result
+    except MemoryUnavailable:
+        if filters: raise
+        return {**_legacy_phone_memory_search(query,limit),'engine':'legacy-fallback','warning':'Tencent unavailable; searched original legacy memory'}
+
+
+def phone_memory_read(record_id: str) -> dict:
+    return _memory_bridge().read(record_id)
+
+
+def phone_memory_health() -> dict:
+    bridge=_memory_bridge()
+    if not bridge.configured: return {'engine':'legacy','tencent_configured':False}
+    result=bridge.health()
+    try:
+        from project_graph import ProjectGraph
+        G,manifest,changed=ProjectGraph()._load()
+        result['graph']={'engine':'graphify-original','nodes':len(G),'edges':G.number_of_edges(),'stale':bool(changed),'revision':manifest.get('revision')}
+    except Exception as exc: result['graph']={'state':'unavailable','reason':type(exc).__name__}
+    return result
+
+
+def project_graph_query(question: str) -> dict:
+    from project_graph import ProjectGraph
+    return ProjectGraph().query(question)
+
+
+def project_graph_node(label: str) -> dict:
+    from project_graph import ProjectGraph
+    return ProjectGraph().node(label)
+
+
+def project_graph_path(source: str, target: str) -> dict:
+    from project_graph import ProjectGraph
+    return ProjectGraph().path(source,target)
 
 
 def tool_definitions() -> list[dict]:
@@ -522,6 +665,7 @@ def operational_memory_context(tool: str, arguments: dict) -> dict:
                     'title': redact_memory(note['title'])[:160],
                     'content': redact_memory(note['content'])[:1000],
                     'updated': note['updated'], 'archived': note['archived'],
+                    'memory': note.get('memory',{'status':'historical'}),
                 })
                 if len(context['notes']) == 3:
                     return context

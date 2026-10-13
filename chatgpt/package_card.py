@@ -7,7 +7,7 @@ import re
 import zipfile
 
 FILES=('plugin.json','.app.json','README.md','assets/icon.png',
-       'skills/setup/SKILL.md','skills/phone-control/SKILL.md','skills/update/SKILL.md')
+       'skills/setup/SKILL.md','skills/phone-control/SKILL.md','skills/update/SKILL.md','skills/using-codaki-memory/SKILL.md')
 
 def build_card(root, output, app_id=None):
     root=Path(root).resolve()
