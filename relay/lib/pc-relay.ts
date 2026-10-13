@@ -1,20 +1,48 @@
 import { env } from "cloudflare:workers";
 import { getChatGPTUser } from "../app/chatgpt-auth";
 import { ownerId, callTool, now, json, validAgent } from "./phone-relay";
+import portableDefinitions from "./pc-portable-tools.json";
 
 type Link = { id: string; inviter: string; email: string; owner: string | null; token_hash: string | null; label: string; capabilities: string; phone_access: number; state: string; expires_at: number; last_seen: number };
 type Job = { id: string; link_id: string; tool: string; arguments: string; state: string; expires_at: number; result: string | null };
 const db = () => (env as unknown as { DB: D1Database }).DB;
 export const capabilities = ["terminal", "files_read", "files_write", "codex"];
 export const pcOperations: Record<string, string | null> = { pc_status: null, pc_terminal: "terminal", pc_read_file: "files_read", pc_write_file: "files_write", pc_list_files: "files_read", pc_codex: "codex" };
+for(const tool of portableDefinitions)pcOperations[tool.name]='terminal';
 const result = (value: unknown) => ({ content: [{ type: "text", text: JSON.stringify(value) }], isError: false });
+function portableResult(value:any):any {
+  if(!value?.structuredContent || !Array.isArray(value.content))return result(value);
+  return {content:[...value.content,{type:'text',text:JSON.stringify({job_id:value.job_id,job_status:value.status})}],structuredContent:{...value.structuredContent,job_id:value.job_id,job_status:value.status},isError:!!value.isError};
+}
+function validatePortable(schema:any,value:any){
+  if(schema.type==='object'){
+    if(!value || typeof value!=='object' || Array.isArray(value))throw new Error('Expected Portable arguments object');
+    for(const key of schema.required||[])if(!Object.hasOwn(value,key))throw new Error('Missing Portable argument');
+    for(const [key,entry] of Object.entries(value)){
+      if(!Object.hasOwn(schema.properties||{},key)){if(schema.additionalProperties===false)throw new Error('Unknown Portable argument');}
+      else validatePortable(schema.properties[key],entry);
+    }
+  }
+  if(schema.type==='string'){
+    if(typeof value!=='string' || value.includes('\0') || value.length<(schema.minLength||0) || value.length>(schema.maxLength??100000))throw new Error('Invalid Portable string');
+    if(schema.pattern && value.match(new RegExp(schema.pattern))?.[0]!==value)throw new Error('Invalid Portable identity');
+  }
+  if(schema.type==='integer' && (!Number.isSafeInteger(value) || value<(schema.minimum??-2147483648) || value>(schema.maximum??2147483647)))throw new Error('Invalid Portable integer');
+  if(schema.type==='boolean' && typeof value!=='boolean')throw new Error('Expected Portable boolean');
+  if(schema.type==='array'){
+    if(!Array.isArray(value) || value.length<(schema.minItems||0) || value.length>(schema.maxItems??10000))throw new Error('Invalid Portable array');
+    for(const item of value)validatePortable(schema.items,item);
+  }
+  if(schema.enum && !schema.enum.includes(value))throw new Error('Invalid Portable choice');
+}
 const object = (properties: Record<string, unknown>, required: string[]) => ({ type: "object", properties, required, additionalProperties: false });
 const str = { type: "string", minLength: 1, maxLength: 200 };
 export const bridgeTools = [
   { name: "mini_pc_invite", description: "Invite a PC by its owner's ChatGPT email. Does not grant access until that owner signs in and approves the PC fingerprint. Can invite yourself for PC-only use. Deliver the code yourself; no email is sent.", inputSchema: object({ email: str, phone_access: { type: "boolean", description: "Explicitly allow this PC to request phone commands. Default false." } }, ["email"]) },
   { name: "mini_connections", description: "List saved Mini Codex PC links, permissions and online status.", inputSchema: object({}, []) },
-  { name: "mini_pc_call", description: "Queue an authorized operation on a paired PC. Start with pc_status. Supported operations: pc_terminal(command,cwd,timeout_seconds); pc_read_file(path); pc_write_file(path,text); pc_list_files(path); pc_codex(prompt,cwd,timeout_seconds). Use a stable request_id, and poll mini_pc_result. Never repeat uncertain commands. Computer Use and Sites are separate client plugins; call their actual tools only on the intended host.", inputSchema: object({ connection_id: str, tool: { type: "string", enum: Object.keys(pcOperations) }, arguments: { type: "object" }, request_id: str }, ["connection_id", "tool", "arguments", "request_id"]) },
+  { name: "mini_pc_call", description: "Queue an authorized operation on a paired PC. Start with pc_status. Portable Windows UI operations pc_use_apps/capabilities/diagnostics/session_start/session_extend/session_stop/observe/launch/action/batch/result/reconcile require the existing local Portable RPC and terminal grant. Put a separate stable engine request_id in arguments; use target_request_id for receipt lookup/reconciliation. Window sessions share a desktop; never replay stopped/uncertain input. Supported operations: pc_terminal(command,cwd,timeout_seconds); pc_read_file(path); pc_write_file(path,text); pc_list_files(path); pc_codex(prompt,cwd,timeout_seconds). Use a stable request_id, and poll mini_pc_result. Never repeat uncertain commands. Computer Use and Sites are separate client plugins; call their actual tools only on the intended host.", inputSchema: object({ connection_id: str, tool: { type: "string", enum: Object.keys(pcOperations) }, arguments: { type: "object" }, request_id: str }, ["connection_id", "tool", "arguments", "request_id"]) },
   { name: "mini_pc_result", description: "Retrieve a queued PC job without repeating its command.", inputSchema: object({ connection_id: str, job_id: str }, ["connection_id", "job_id"]) },
+  { name: "mini_pc_cancel", description: "Cancel only a job of the selected authorized PC link that is still queued; running/uncertain input cannot be cancelled.",inputSchema:object({connection_id:str,job_id:str},['connection_id','job_id']) },
   { name: "mini_disconnect", description: "Revoke a saved connection in both directions. Unclaimed jobs are cancelled immediately.", inputSchema: object({ connection_id: str }, ["connection_id"]) },
   { name: "mini_phone_call", description: "Request a phone tool from a paired PC owner's ChatGPT account, only if the phone owner explicitly enabled this direction. Phone is optional. Keep the request_id to avoid replay; use phone_job_result for pending results.", inputSchema: object({ connection_id: str, tool: str, arguments: { type: "object" }, request_id: str }, ["connection_id", "tool", "arguments", "request_id"]) },
 ].map(t => ({ ...t, annotations: { readOnlyHint: ["mini_connections", "mini_pc_result"].includes(t.name), destructiveHint: !["mini_connections", "mini_pc_result"].includes(t.name) } }));
@@ -61,7 +89,15 @@ export async function jobResult(link: Link, id: string) {
   const job = await db().prepare("SELECT * FROM pc_jobs WHERE link_id=? AND id=?").bind(link.id, id).first<Job>();
   if (!job) throw new Error("Job not found or expired; inspect PC state before retrying");
   if (job.result) return { ...JSON.parse(job.result), job_id: job.id, status: job.state };
+  if(job.state==='cancelled')return {job_id:job.id,status:'cancelled',executed:false};
   return { job_id: job.id, status: job.state, expires_at: job.expires_at, instruction: "Poll this job ID. Never resubmit a command with an uncertain outcome." };
+}
+export async function cancelJob(link:Link,id:string){
+  const row=await db().prepare("UPDATE pc_jobs SET state='cancelled' WHERE id=? AND link_id=? AND state='queued' RETURNING id").bind(id,link.id).first();
+  if(row)return {job_id:id,status:'cancelled',executed:false};
+  const previous=await db().prepare('SELECT state FROM pc_jobs WHERE id=? AND link_id=?').bind(id,link.id).first<{state:string}>();
+  if(previous?.state==='cancelled')return {job_id:id,status:'cancelled',executed:false};
+  throw new Error('Job unavailable or already running; inspect its original receipt without replay');
 }
 export async function enqueue(link: Link, args: Record<string, unknown>) {
   const tool = text(args.tool); const key = text(args.request_id);
@@ -69,6 +105,8 @@ export async function enqueue(link: Link, args: Record<string, unknown>) {
   const cap = pcOperations[tool];
   if (cap && !JSON.parse(link.capabilities).includes(cap)) throw new Error("PC owner did not grant this capability");
   if (!args.arguments || typeof args.arguments !== "object" || Array.isArray(args.arguments)) throw new Error("Arguments object required");
+  const portable=portableDefinitions.find(t=>t.name===tool);
+  if(portable)validatePortable(portable.inputSchema,args.arguments);
   const raw = JSON.stringify(args.arguments);
   if (new TextEncoder().encode(raw).length > 128000) throw new Error("Arguments too large");
   // Idempotency is scoped to the link; changed payload with the same ID is rejected.
@@ -107,8 +145,9 @@ export async function callBridge(name: string, args: Record<string, unknown>) {
   }
   const link = await linkFor(text(args.connection_id), user.userId);
   if (name === "mini_disconnect") { await revoke(link.id); return result({ revoked: true }); }
-  if (name === "mini_pc_call") return result(await enqueue(link, args));
-  if (name === "mini_pc_result") return result(await jobResult(link, text(args.job_id)));
+  if (name === "mini_pc_call") return portableResult(await enqueue(link, args));
+  if (name === "mini_pc_result") return portableResult(await jobResult(link, text(args.job_id)));
+  if (name === "mini_pc_cancel") return result(await cancelJob(link,text(args.job_id)));
   if (name === "mini_phone_call" && user.userId === link.owner) return phoneCall(link, args);
   throw new Error("Unknown or unauthorized bridge tool");
 }
@@ -172,9 +211,10 @@ export async function api(request: Request, args: Record<string, unknown>): Prom
     const id = text(args.job_id); const state = args.status;
     if (!["completed", "uncertain"].includes(String(state))) throw new Error("Invalid job state");
     const raw = JSON.stringify(args.result);
-    if (!args.result || typeof args.result !== "object" || new TextEncoder().encode(raw).length > 128000) throw new Error("Invalid or oversized result");
     const row = await db().prepare("SELECT * FROM pc_jobs WHERE id=? AND link_id=?").bind(id, link.id).first<Job>();
     if (!row) return json({ error: "Job expired; cached execution must not be repeated" }, 410);
+    const limit=row.tool.startsWith('pc_use_')?4*1024*1024:128000;
+    if (!args.result || typeof args.result !== "object" || new TextEncoder().encode(raw).length > limit) throw new Error("Invalid or oversized result");
     if (!row.result && !["running", "uncertain"].includes(row.state)) return json({ error: "Job not claimed or was cancelled" }, 409);
     if (!row.result && ["running", "uncertain"].includes(row.state)) await db().prepare("UPDATE pc_jobs SET state=?,result=? WHERE id=? AND link_id=? AND result IS NULL AND state IN ('running','uncertain')").bind(state, raw, id, link.id).run();
     return json({ ok: true });

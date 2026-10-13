@@ -35,6 +35,7 @@
   "lib/connector-errors.mts",
   "lib/connector-preview.d.ts",
   "lib/connectors.ts",
+  "lib/pc-portable-tools.json",
   "lib/pc-relay.ts",
   "lib/phone-relay.ts",
   "lib/phone-tools.json",
