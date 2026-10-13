@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (body.id === undefined) return new Response(null,{status:202});
     if (typeof body.id !== "number" && typeof body.id !== "string") return json({jsonrpc:"2.0",id,error:{code:-32600,message:"Invalid request ID"}},400);
     let result: unknown;
-    if (body.method === "initialize") result = { protocolVersion: ["2024-11-05","2025-03-26","2025-06-18"].includes(body.params?.protocolVersion || "") ? body.params!.protocolVersion : "2025-03-26", capabilities:{tools:{}},serverInfo:{name:"Codaki Mini Codex Phone",version:"0.2.4"},instructions: instructions + " Optional PCs are independent, owner-paired devices; use mini_connections and pc_status. PowerShell needs local consent. Other plugins run through their actual client tools on the correct host. Never replay uncertain jobs." };
+    if (body.method === "initialize") result = { protocolVersion: ["2024-11-05","2025-03-26","2025-06-18"].includes(body.params?.protocolVersion || "") ? body.params!.protocolVersion : "2025-03-26", capabilities:{tools:{}},serverInfo:{name:"Codaki Mini Codex Phone",version:"0.2.5"},instructions: instructions + " Optional PCs are independent, owner-paired devices; use mini_connections and pc_status. PowerShell needs local consent. Other plugins run through their actual client tools on the correct host. Never replay uncertain jobs." };
     else if (body.method === "ping") result = {};
     else if (body.method === "tools/list") result = {tools: [...tools, ...bridgeTools]};
     else if (body.method === "tools/call") {

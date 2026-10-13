@@ -40,5 +40,13 @@ class BridgeTests(unittest.TestCase):
    b=MemoryBridge(p)
    with patch('memory_bridge.allocated_bytes',side_effect=ValueError('symlink')):
     with self.assertRaises(ValueError):b.save('t','c',[])
+ def test_app_reservation_counts_inaccessible_root_storage_before_saving(self):
+  from memory_bridge import CAP
+  with tempfile.TemporaryDirectory() as d:
+   p=Path(d)/'config.json';p.write_text(json.dumps({'url':'http://127.0.0.1:8420','key':'k'*48,'accounting_roots':[],'external_reserved_bytes':CAP-100}))
+   b=MemoryBridge(p)
+   with patch.object(b,'request') as request:
+    with self.assertRaises(ValueError):b.save('title','content',[])
+    request.assert_not_called()
 
 if __name__=='__main__':unittest.main()

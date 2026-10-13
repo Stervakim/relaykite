@@ -245,8 +245,8 @@ def root_shell(command: str, timeout_seconds: int=30) -> dict:
     return {'output': result[:60000], 'truncated': len(result) > 60000}
 
 def phone_list_files(directory: str, include_hidden: bool=False) -> dict:
-    """List an owner-requested Android directory with root, including app/private folders when explicitly requested."""
-    result = shell('ls ' + ('-la ' if include_hidden else '-l ') + '-- ' + phone_path(directory))
+    """List an owner-requested directory using the selected runtime UID."""
+    result = shell('ls ' + ('-la ' if include_hidden else '-l ') + '-- ' + phone_path(directory),root=False)
     return {'directory': directory, 'listing': result[:60000], 'truncated': len(result) > 60000}
 
 def phone_read_file(path: str, encoding: str='utf-8', max_bytes: int=262144) -> dict:
@@ -254,17 +254,34 @@ def phone_read_file(path: str, encoding: str='utf-8', max_bytes: int=262144) -> 
     if encoding not in ('utf-8', 'base64') or not 1 <= max_bytes <= 8 * 1024 * 1024:
         raise ValueError('encoding must be utf-8/base64; max_bytes must be 1..8388608')
     quoted = phone_path(path)
-    raw = adb('exec-out', 'su -c ' + shlex.quote(f'head -c {max_bytes + 1} -- {quoted}'), binary=True)
+    if getattr(os,'geteuid',lambda:0)()!=0:
+        from file_ops import safe
+        with safe(path).open('rb') as source:raw=source.read(max_bytes+1)
+    else:raw = adb('exec-out', 'su -c ' + shlex.quote(f'head -c {max_bytes + 1} -- {quoted}'), binary=True)
     return {'path': path, 'encoding': encoding, 'content': base64.b64encode(raw[:max_bytes]).decode() if encoding == 'base64' else raw[:max_bytes].decode('utf-8', 'replace'), 'truncated': len(raw) > max_bytes}
 
 def phone_write_file(path: str, content: str, encoding: str='utf-8') -> dict:
-    """Write a user-requested phone file atomically with root; existing file metadata is preserved when possible. Can overwrite any writable device file."""
+    """Atomically write a requested file within the selected runtime's permissions."""
     destination = phone_path(path)
     if encoding not in ('utf-8', 'base64'):
         raise ValueError('encoding must be utf-8/base64')
     data = base64.b64decode(content, validate=True) if encoding == 'base64' else content.encode('utf-8')
     if len(data) > 8 * 1024 * 1024:
         raise ValueError('Maximum write size is 8 MiB; use root_shell for larger files')
+    if getattr(os,'geteuid',lambda:0)()!=0:
+        from file_ops import safe,signature
+        from path_locks import hold
+        with hold([path]):
+            target=safe(path);before=signature(target)
+            mode=target.stat().st_mode&0o777 if before is not None else 0o600
+            fd,name=tempfile.mkstemp(prefix='.relaykite-write-',dir=target.parent)
+            try:
+                with os.fdopen(fd,'wb') as output:output.write(data);output.flush();os.fsync(output.fileno())
+                os.chmod(name,mode)
+                if signature(target)!=before:raise RuntimeError('Target changed during atomic write')
+                os.replace(name,target)
+            finally:Path(name).unlink(missing_ok=True)
+        return {'path':path,'bytes_written':len(data),'sha256':hashlib.sha256(data).hexdigest()}
     remote = '/data/local/tmp/owner-mcp-write-' + uuid.uuid4().hex
     staged = path + '.owner-mcp-' + uuid.uuid4().hex
     staged_q = phone_path(staged)

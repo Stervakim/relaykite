@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 
-VERSION = '0.2.4'
+VERSION = '0.2.5'
 CAPABILITIES = {'terminal', 'files_read', 'files_write', 'codex'}
 OPERATIONS = {'pc_status': None, 'pc_terminal': 'terminal', 'pc_read_file': 'files_read',
               'pc_write_file': 'files_write', 'pc_list_files': 'files_read', 'pc_codex': 'codex'}

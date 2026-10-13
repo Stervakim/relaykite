@@ -4,18 +4,21 @@ import importlib.util
 from pathlib import Path
 import shutil
 import zipfile
+import json,re
 
-VERSION='0.2.4'
+VERSION='0.2.5'
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('mini_codex_card',ROOT/'chatgpt'/'package_card.py')
 card_builder=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(card_builder)
-MODULE_FILES=('module.prop','skip_mount','customize.sh','service.sh','stop.sh','uninstall.sh','configure.sh','INSTALL_WITH_CODEX.md')
+MODULE_FILES=('module.prop','skip_mount','customize.sh','service.sh','stop.sh','uninstall.sh','configure.sh','install-runtime.sh','INSTALL_WITH_CODEX.md')
 AGENT_FILES=('native_phone.py','phone_agent.py','network_route.py','pc_peer.py','portable_peer.py','tool-definitions.json','configure.py','support_runtime.py','support/SKILL.md','support/services.md',
-             'job_scheduler.py','terminal_manager.py','_pty_exec.py','managed_tools.py','file_ops.py','path_locks.py','file_bridge.py','runtime_paths.py','app_worker.py',
-             'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip','portable_tools.py',
+             'job_scheduler.py','terminal_manager.py','_pty_exec.py','managed_tools.py','file_ops.py','path_locks.py','file_bridge.py','runtime_paths.py','app_worker.py','import_app_config.py','state_snapshot.py','mode_coordinator.py','root_supervisor.py','bootstrap_native.py',
+             'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip','portable_tools.py','runtime_control.py',
              'memory-runtime/codaki-external.mjs','memory-runtime/LICENSE.Tencent','memory-runtime/LICENSE.Graphify','memory-runtime/LICENSE.NetworkX',
              'memory-runtime/external.ts','memory-runtime/external.test.ts','memory-runtime/tencent-external.patch','memory-runtime/versions.json','memory-runtime/README.md')
+EXTRA_AGENT_INPUTS={'install_embedded_runtime.py':'scripts/install_embedded_runtime.py','migrate_private_runtime.py':'scripts/migrate_private_runtime.py'}
+GENERATED_FILES=('agent/runtime-apk.sha256',)
 
 
 def build(root=ROOT):
@@ -26,6 +29,7 @@ def build(root=ROOT):
     target=output/f'mini-codex-magisk-{VERSION}.zip'
     entries=[(root/'magisk'/name,name) for name in MODULE_FILES]
     entries += [(root/'agent'/name,'agent/'+name) for name in AGENT_FILES]
+    entries += [(root/source,'agent/'+name) for name,source in EXTRA_AGENT_INPUTS.items()]
     entries.append((root/'LICENSE','LICENSE'))
     entries += [(root/'chatgpt'/name,'chatgpt/'+name) for name in ('package_card.py','README.md')]
     entries += [(root/'chatgpt'/'plugin'/name,'chatgpt/plugin/'+name) for name in card_builder.FILES]
@@ -42,11 +46,17 @@ def build(root=ROOT):
             info.external_attr=(0o100755 if name.endswith('.sh') else 0o100644)<<16
             info.compress_type=zipfile.ZIP_DEFLATED
             archive.writestr(info,data)
+        pinned=json.loads((root/'device-runtime/artifacts/provider-manifest.json').read_text())['apk_sha256']
+        if not isinstance(pinned,str) or not re.fullmatch('[a-f0-9]{64}',pinned):raise ValueError('Pinned signed APK SHA-256 is invalid')
+        info=zipfile.ZipInfo('agent/runtime-apk.sha256',(2026,1,1,0,0,0));info.create_system=3;info.external_attr=0o100644<<16;info.compress_type=zipfile.ZIP_DEFLATED
+        archive.writestr(info,(pinned+'\n').encode('ascii'))
     agent_output=output/'agent'
     agent_output.mkdir(exist_ok=True)
     for name in AGENT_FILES:
         (agent_output/name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(root/'agent'/name,agent_output/name)
+    for name,source in EXTRA_AGENT_INPUTS.items():shutil.copyfile(root/source,agent_output/name)
+    (agent_output/'runtime-apk.sha256').write_text(pinned+'\n',encoding='ascii',newline='\n')
     (output/'SHA256SUMS').write_text(''.join(hashlib.sha256(path.read_bytes()).hexdigest()+'  '+path.name+'\n' for path in (target,card)),encoding='ascii',newline='\n')
     return target
 

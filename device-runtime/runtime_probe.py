@@ -19,6 +19,8 @@ probe=base/'probe';probe.mkdir(exist_ok=True)
 runtime=Runtime(probe,phone.dispatch);server=Server(runtime,probe/'managed.sock')
 try:
     own=probe/'owned.txt';own.write_text('Свой файл: RelayKite\n')
+    direct=probe/'native-api.txt';phone.phone_write_file(str(direct),'Файл без root\n')
+    assert phone.phone_read_file(str(direct))['content']=='Файл без root\n'
     rid='app_probe_'+secrets.token_hex(8)
     copied=runtime.invoke('phone_file_copy',{'request_id':rid+'_file','source':str(own),'destination':str(probe/'copy.txt'),'overwrite':True})
     assert (probe/'copy.txt').read_text()==own.read_text()
@@ -31,7 +33,7 @@ try:
     assert out['exit_code']==0 and 'owned-pty' in out['text'] and str(os.getuid()) in out['text'],out
     assert runtime.invoke('phone_command_start',{'request_id':rid+'_pty','command':'id -u; printf "owned-pty"','mode':'app','timeout_seconds':10})['terminal_id']==terminal['terminal_id']
     assert phone.dispatch('root_shell',{'command':'id'})['isError']
-    result.update(app_pty=True,app_files=True,managed_ipc_same_owner=True,root_denied=True,status_mode=phone.phone_status()['runtime']['mode'])
+    result.update(app_pty=True,app_files=True,direct_file_api=True,managed_ipc_same_owner=True,root_denied=True,status_mode=phone.phone_status()['runtime']['mode'])
 finally:server.close();runtime.close()
 with tempfile.TemporaryDirectory(prefix='owned-memory-proof-',dir=probe) as tmp:
     temporary=Path(tmp);cfg=temporary/'service.json';key=secrets.token_urlsafe(48)
@@ -65,4 +67,34 @@ with tempfile.TemporaryDirectory(prefix='owned-memory-proof-',dir=probe) as tmp:
         try:child.wait(timeout=5)
         except subprocess.TimeoutExpired:child.kill();child.wait()
         child.stdout.close()
+if (base/'config.json').is_file() and (base/'state/managed.sock').exists():
+    # Exercise the production manager from this real app UID/domain, rather
+    # than accepting an isolated probe manager as proof of a live worker.
+    from managed_tools import invoke
+    from memory_bridge import MemoryBridge
+    rid='app_live_'+secrets.token_hex(8)
+    command={'request_id':rid,'command':'id -u; printf "live-app-pty"','mode':'app','timeout_seconds':10}
+    started=invoke('phone_command_start',command);until=time.monotonic()+12
+    while time.monotonic()<until:
+        output=invoke('phone_command_result',{'terminal_id':started['terminal_id']})
+        if output['eof']:break
+        time.sleep(.05)
+    assert output['exit_code']==0 and 'live-app-pty' in output['text'] and str(os.getuid()) in output['text']
+    assert invoke('phone_command_start',command)['terminal_id']==started['terminal_id']
+    try:invoke('phone_command_start',{'request_id':rid+'_deny','command':'id -u','mode':'root','timeout_seconds':10})
+    except RuntimeError:pass
+    else:raise AssertionError('Production app manager accepted root execution')
+    task={'request_id':rid+'_task','tool':'phone_status','arguments':{},'timeout_seconds':10}
+    invoke('phone_task_start',task);until=time.monotonic()+12
+    while time.monotonic()<until:
+        managed=invoke('phone_task_result',{'task_id':task['request_id']})
+        if managed['status'] not in ('queued','running'):break
+        time.sleep(.05)
+    assert managed['status']=='completed',managed
+    assert invoke('phone_task_start',task)['task_id']==task['request_id']
+    source=probe/'live-source.txt';source.write_text('Проверка основного агента\n')
+    invoke('phone_file_copy',{'request_id':rid+'_file','source':str(source),'destination':str(probe/'live-copy.txt'),'overwrite':True})
+    assert source.read_bytes()==(probe/'live-copy.txt').read_bytes()
+    health=MemoryBridge().health()
+    result.update(live_worker_ipc=True,live_app_root_denied=True,live_jobs=True,live_file_copy=True,live_memory_notes=health['notes_count'],live_request_id=rid,live_terminal_id=started['terminal_id'])
 print(json.dumps(result))

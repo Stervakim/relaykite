@@ -1,6 +1,6 @@
 id=mini_codex
-name=Codaki Mini Codex Android Agent
-version=0.2.4
-versionCode=20400
+name=RelayKite Android Agent
+version=0.2.5
+versionCode=20500
 author=Codaki Mini Codex contributors
-description=Codaki Mini Codex 0.2.4: device support, verified inventory and root phone tools through your own authenticated private relay. Requires Termux Python and local configuration; outbound HTTPS only.
+description=RelayKite 0.2.5: signed embedded Python and Node, explicit app/root/root+Termux modes, durable tasks and original private memory. Configure in the matching APK; outbound HTTPS only.

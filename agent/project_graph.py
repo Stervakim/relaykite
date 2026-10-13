@@ -35,7 +35,11 @@ class ProjectGraph:
             _cache.clear();_cache[key]=_read_graph(str(p))
         changed=[]
         for name,expected in m.get('sources',{}).items():
-            src=Path(name)
+            if name.startswith('@runtime/'):
+                src=Path(__file__).resolve().parents[1]/name.removeprefix('@runtime/')
+            elif name.startswith('@base/'):
+                src=BASE/name.removeprefix('@base/')
+            else:src=Path(name)
             if src.is_symlink() or not src.is_file() or hashlib.sha256(src.read_bytes()).hexdigest()!=expected:changed.append(name)
         return _cache[key],m,changed
     def _result(self,result:str,m:dict,changed:list)->dict:

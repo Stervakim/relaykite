@@ -5,12 +5,14 @@ from graphify.extract import extract
 from graphify.build import build
 from graphify.export import to_json
 
-EXT={'.py','.ts','.tsx','.js','.mjs','.sh','.ps1'}
+EXT={'.py','.ts','.tsx','.js','.mjs','.sh','.ps1','.java'}
 
 def main():
     a=argparse.ArgumentParser();a.add_argument('--codaki',required=True);a.add_argument('--tencent',required=True);a.add_argument('--site',required=True);a.add_argument('--out',required=True)
     o=a.parse_args();out=Path(o.out).resolve();out.mkdir(parents=True,exist_ok=True);corpus=out/'corpus';corpus.mkdir(exist_ok=True)
     groups=[(Path(o.codaki)/'agent','codaki/agent'),(Path(o.codaki)/'pc','codaki/pc'),(Path(o.site)/'lib','codaki/relay'),
+            (Path(o.codaki)/'portable/src','codaki/portable'),(Path(o.codaki)/'portable/android/java','codaki/android-core'),
+            (Path(o.codaki)/'device-runtime/java','codaki/device-runtime'),(Path(o.codaki)/'scripts','codaki/scripts'),(Path(o.codaki)/'magisk','codaki/root-install'),
             (Path(o.tencent)/'MemoryCore/src/core/store','tencent/core/store'),(Path(o.tencent)/'MemoryCore/src/core/storage','tencent/core/storage'),(Path(o.tencent)/'MemoryCore/src/codaki','tencent/codaki')]
     files=[];sources={}
     for root,prefix in groups:
@@ -19,8 +21,8 @@ def main():
             rel=p.relative_to(root)
             if p.name.startswith('test') or '.test.' in p.name or any(x in ('node_modules','__pycache__','__tests__','.git') for x in rel.parts):continue
             q=corpus/prefix/rel;q.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,q);files.append(q)
-            if prefix=='codaki/agent' and len(rel.parts)==1:
-                sources['/data/adb/modules/mini_codex/agent/'+p.name]=hashlib.sha256(p.read_bytes()).hexdigest()
+            source='@runtime/agent/'+rel.as_posix() if prefix=='codaki/agent' else '@base/project-source/'+prefix+'/'+rel.as_posix()
+            sources[source]=hashlib.sha256(p.read_bytes()).hexdigest()
     if not files:raise RuntimeError('No allowed source files')
     # Original deterministic AST extractor only; no semantic/model pass.
     extraction=extract(files,root=corpus,parallel=False)

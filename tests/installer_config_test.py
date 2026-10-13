@@ -105,6 +105,10 @@ class InstallerTests(unittest.TestCase):
         target.mkdir()
         for folder in ('agent','magisk','chatgpt'):
             shutil.copytree(ROOT/folder,target/folder)
+        for source in builder.EXTRA_AGENT_INPUTS.values():
+            (target/source).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/source,target/source)
+        provenance=target/'device-runtime/artifacts';provenance.mkdir(parents=True)
+        shutil.copyfile(ROOT/'device-runtime/artifacts/provider-manifest.json',provenance/'provider-manifest.json')
         shutil.copyfile(ROOT/'LICENSE',target/'LICENSE')
         # Even local secret-looking files and host tests must never enter release ZIP.
         (target/'agent'/'config.json').write_text('{"agent_token":"DO_NOT_BUNDLE"}')
@@ -113,6 +117,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(first,builder.build(target).read_bytes())
         with zipfile.ZipFile(artifact) as archive:
             expected=set(builder.MODULE_FILES)|{'agent/'+n for n in builder.AGENT_FILES}|{'LICENSE'}
+            expected|={'agent/'+n for n in builder.EXTRA_AGENT_INPUTS}|set(builder.GENERATED_FILES)
             expected|={'chatgpt/package_card.py','chatgpt/README.md'}|{'chatgpt/plugin/'+n for n in builder.card_builder.FILES}
             expected.add('chatgpt/codaki-mini-codex-chatgpt-'+builder.VERSION+'.zip')
             self.assertEqual(set(archive.namelist()),expected)
@@ -163,6 +168,7 @@ class InstallerTests(unittest.TestCase):
             value=Path(path).absolute().as_posix()
             return '/'+value[0].lower()+value[2:] if len(value)>1 and value[1]==':' else value
         script=script.replace('/data/data/com.termux/files/usr/bin/python',posix_path(runtime))
+        script=script.replace('"/system/bin/sh" "$MODPATH/install-runtime.sh" "$MODPATH"','"'+posix_path(runtime)+'"')
         script=script.replace('/data/adb/mini-codex',posix_path(self.base))
         script=script.replace('/data/adb',posix_path(Path(self.temp.name)))
         script=script.replace('for path in /data ', 'for path in '+posix_path(Path(self.temp.name))+' ')

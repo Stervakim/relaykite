@@ -6,7 +6,7 @@ RelayKite runs a Python worker on **your rooted phone**. The PC is unnecessary a
 
 ## Recommended: give the ZIP to Codex
 
-Download `mini-codex-magisk-0.2.4.zip` from the repository's latest release and attach it to a Codex session with device tools or local computer access. Ask Codex to install it using `INSTALL_WITH_CODEX.md` inside the archive. Codex checks the checksum and prerequisites, installs the module, provisions your own private relay/plugin when needed and verifies the connection. Existing working configuration and memory are retained on upgrade.
+Download `mini-codex-magisk-0.2.5.zip` from the repository's latest release and attach it to a Codex session with device tools or local computer access. Ask Codex to install it using `INSTALL_WITH_CODEX.md` inside the archive. Codex checks the checksum and prerequisites, installs the module, provisions your own private relay/plugin when needed and verifies the connection. Existing working configuration and memory are retained on upgrade.
 
 An existing authorized phone-control channel can perform the phone steps without ADB. For first installation without one, connect your phone to the computer running Codex and approve USB debugging. Codex verifies the selected ADB serial, root and Magisk and uses Magisk's module installer. The ZIP is not an APK. Root/Magisk and Termux Python must already exist; secure first unlock or debugging approval may require you. A phone-only chat without a control channel cannot install the agent by itself.
 
@@ -20,7 +20,7 @@ The detailed instructions below also support manual setup.
 
 ## Install and configure
 
-1. Download `mini-codex-magisk-0.2.4.zip` and verify its SHA-256 against the release's `SHA256SUMS`.
+1. Download `mini-codex-magisk-0.2.5.zip` and verify its SHA-256 against the release's `SHA256SUMS`.
 2. In Magisk, choose **Modules → Install from storage**, select the ZIP and reboot. Install through Codex using Magisk’s supported module installer, or through the Magisk app; not recovery. A fresh installation remains inactive and makes no relay requests until local configuration succeeds.
 3. In Termux, run:
 
@@ -67,7 +67,7 @@ python -m unittest discover -s tests -p 'installer_*.py'
 python scripts/build_release.py
 ```
 
-The build writes `dist/mini-codex-magisk-0.2.4.zip`, `dist/SHA256SUMS`, and redistributable agent files in `dist/agent/`. These commands do not access a phone or include any owner's configuration.
+The build writes `dist/mini-codex-magisk-0.2.5.zip`, `dist/SHA256SUMS`, and redistributable agent files in `dist/agent/`. These commands do not access a phone or include any owner's configuration.
 
 ### Update with GPT
 

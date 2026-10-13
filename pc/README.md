@@ -1,14 +1,14 @@
-# RelayKite PC — 0.2.4
+# RelayKite PC — 0.2.5
 
 Фоновый агент Windows без окна. GPT → личный HTTPS MCP-сервер → агент → PowerShell → результат GPT. Python 3.14+, PowerShell, интернет и собственный сервер; телефон не нужен. Агент открывает только исходящие HTTPS-запросы и запускается с правами обычного Windows-пользователя.
 
 ## Установка через Codex
 
-Скачайте `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` и `SHA256SUMS` из [релиза](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4). Карточка есть и внутри установщика под `chatgpt/`.
+Скачайте `mini-codex-pc-0.2.5.zip`, `codaki-mini-codex-pc-chatgpt-0.2.5.zip` и `SHA256SUMS` из [релиза](https://github.com/Stervakim/relaykite/releases/tag/v0.2.5). Карточка есть и внутри установщика под `chatgpt/`.
 
 Передайте файлы Codex:
 
-> Установи Mini Codex PC 0.2.4 из этого ZIP. Проверь SHA256SUMS и прочитай INSTALL_WITH_CODEX.md. Подключи мой личный сервер и карточку GPT, согласуй папки и доступ к PowerShell, сохрани существующие связи. Настрой фоновый запуск без окна. Проверь pc_status и безопасную команду PowerShell. Для Computer Use и Sites используй доступные плагины с их собственными разрешениями.
+> Установи Mini Codex PC 0.2.5 из этого ZIP. Проверь SHA256SUMS и прочитай INSTALL_WITH_CODEX.md. Подключи мой личный сервер и карточку GPT, согласуй папки и доступ к PowerShell, сохрани существующие связи. Настрой фоновый запуск без окна. Проверь pc_status и безопасную команду PowerShell. Для Computer Use и Sites используй доступные плагины с их собственными разрешениями.
 
 Подробный порядок: [INSTALL_WITH_CODEX.md](INSTALL_WITH_CODEX.md). Импорт публичной карточки не подключает сервер автора, не регистрирует ПК и не даёт доступ к терминалу.
 

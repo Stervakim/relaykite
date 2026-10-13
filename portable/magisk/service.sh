@@ -19,8 +19,15 @@ test -f "$DATA/runtime.env" || exit 0
 test ! -f "$MODULE/disable" || exit 0
 test ! -f "$DATA/stopped" || exit 0
 . "$DATA/runtime.env"
+NATIVE=$(/system/bin/readlink -f /data/adb/relaykite-runtime/current 2>/dev/null)
+if test -x "$NATIVE/native/librelaykite_python.so"; then
+  PYTHON="$NATIVE/native/librelaykite_python.so"
+  export PYTHONHOME="$NATIVE" PYTHONNOUSERSITE=1
+  export LD_LIBRARY_PATH="$NATIVE/native" PATH=/system/bin:/system/xbin
+else
 export PATH="$PREFIX/bin:/system/bin:/system/xbin"
 export LD_LIBRARY_PATH="$PREFIX/lib"
+fi
 export HOME="$DATA" TMPDIR="$CORE" PYTHONPATH="$DATA/app" PYTHONDONTWRITEBYTECODE=1 PYTHONIOENCODING=utf-8
 mkdir -p "$DATA/state" "$CORE"
 echo $$ > "$DATA/service.pid"

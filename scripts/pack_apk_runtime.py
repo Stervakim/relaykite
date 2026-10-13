@@ -64,6 +64,7 @@ def pack(source,output):
     for path in sorted((ROOT/'agent').glob('*.py')):
         if not path.name.startswith('test_'):assets['agent/'+path.name]=path.read_bytes()
     assets['agent/tool-definitions.json']=(ROOT/'agent/tool-definitions.json').read_bytes()
+    for name in ('SKILL.md','services.md'):assets['agent/support/'+name]=(ROOT/'agent/support'/name).read_bytes()
     assets['agent/graph-runtime.zip']=(ROOT/'agent/graph-runtime.zip').read_bytes()
     for path in sorted((ROOT/'agent/memory-runtime').iterdir()):
         if path.name=='codaki-external.mjs' or path.name.startswith('LICENSE.'):assets['agent/memory-runtime/'+path.name]=path.read_bytes()

@@ -39,7 +39,7 @@ Website: https://stervakim.github.io/relaykite/
 21. Turn a Device Task into a Conversation
 22. From “Save This Note” to a File on Your Device
 23. How to Give an AI Device Tools without Sharing a Public Server
-24. RelayKite 0.2.4: Explore Phone and PC Automation
+24. RelayKite 0.2.5: Explore Phone and PC Automation
 
 ## Short launch copy
 
@@ -51,7 +51,7 @@ I'm sharing RelayKite, an independent open-source project for carrying out devic
 
 The connection uses your own authenticated HTTPS MCP relay and personal plugin. ChatGPT supplies the AI decisions; RelayKite supplies the device tools and job handling. It needs internet and a supported account connection. It isn't an offline model or a one-click root installer.
 
-I'd welcome reproducible bug reports, independent testing and English documentation feedback. The README separates requirements, available tools and compatibility limits. Version 0.2.4 archives retain their old Mini Codex filenames for compatibility.
+I'd welcome reproducible bug reports, independent testing and English documentation feedback. The README separates requirements, available tools and compatibility limits. Version 0.2.5 archives retain their old Mini Codex filenames for compatibility.
 
 ## Suggested video outline
 

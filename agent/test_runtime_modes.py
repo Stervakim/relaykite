@@ -1,4 +1,5 @@
-import os,subprocess,unittest
+import os,subprocess,unittest,tempfile
+from pathlib import Path
 from unittest.mock import patch
 import native_phone as phone
 from terminal_manager import android_backend
@@ -18,5 +19,14 @@ class RuntimeModesTests(unittest.TestCase):
             with self.assertRaises(PermissionError):android_backend('root')
             with self.assertRaises(PermissionError):android_backend('system')
             with self.assertRaises(PermissionError):android_backend('termux')
+    def test_app_file_read_write_preserve_bytes_and_do_not_invoke_root_shell(self):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(os,'geteuid',return_value=10515,create=True),patch.object(phone,'phone_path',return_value='owned-android-path'),patch.object(phone,'shell') as shell,patch.object(phone,'adb') as adb:
+            path=Path(tmp)/'owned.txt';content='Проверка своей области\n'
+            out=phone.phone_write_file(str(path),content)
+            self.assertEqual(out['bytes_written'],len(content.encode()))
+            self.assertEqual(phone.phone_read_file(str(path))['content'],content)
+            self.assertTrue(phone.phone_read_file(str(path),max_bytes=3)['truncated'])
+            self.assertEqual(phone.phone_write_file(str(path),'updated')['bytes_written'],7)
+            self.assertEqual(path.read_text(),'updated');shell.assert_not_called();adb.assert_not_called()
 
 if __name__=='__main__':unittest.main()

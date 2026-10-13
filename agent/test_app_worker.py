@@ -29,5 +29,9 @@ class AppWorkerTests(unittest.TestCase):
             self.assertTrue(app_worker.owned_child(receipt,10515,19,receipt['argv'],123))
             for uid,born,args,pgid in ((0,19,receipt['argv'],123),(10515,20,receipt['argv'],123),(10515,19,['other'],123),(10515,19,receipt['argv'],122)):
                 self.assertFalse(app_worker.owned_child(receipt,uid,born,args,pgid))
+    def test_memory_health_alone_cannot_replace_the_child_startup_receipt(self):
+        self.assertEqual(app_worker.validate_memory_ready(b'{"ready":true,"port":8420,"engine":"tencentdb-original-external"}',8420)['port'],8420)
+        for value in (b'{"engine":"tencentdb-original-external"}',b'{"ready":true,"port":9999,"engine":"tencentdb-original-external"}',b'{"ready":false,"port":8420,"engine":"tencentdb-original-external"}'):
+            with self.assertRaises(ValueError):app_worker.validate_memory_ready(value,8420)
 
 if __name__=='__main__':unittest.main()

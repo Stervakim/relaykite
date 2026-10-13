@@ -1,14 +1,14 @@
 {
   "version": "0.2.5",
   "package": "org.relaykite.runtime",
-  "apk_sha256": "9fd3d55222524c86fdda7b4bcbdb9734d369dc63dfea248b59e9f6014cd08415",
-  "dex_sha256": "63ed5e2500a773dba142295fcc348c277cdaf81399dbd7743dd96502cc5288fb",
+  "apk_sha256": "243c0addb46f05636ed4cf7372a0012fd3a227558977a94254ec2d23955ff883",
+  "dex_sha256": "5e52f9b492739ed515ef1fdb5b6b2239fc520e6723a919a33b0706825c797e0a",
   "r8_sha256": "cd849dec47fe15ff349199162d7a6caaffd8548703fcb167d5c450afe8b67180",
   "android_jar_sha256": "aec874bb691a604a64b93c907b65c26bcc1311050e09413cf050bc5bd9e68488",
   "source_sha256": {
     "java/org/relaykite/runtime/BootReceiver.java": "6ff417c86d5239b8a2dd80a62aa609e942eb43cfac1f460514512bd334b2fea1",
     "java/org/relaykite/runtime/FileLaunchActivity.java": "67ee1ff431e554cf419f9a2628ea9d728e6a831d98318fef29d46365c548bacc",
-    "java/org/relaykite/runtime/RuntimeActivity.java": "ebb526ad09f75767828799dce3d84b26fb5f17dc77a287108114a2a2a7767495",
+    "java/org/relaykite/runtime/RuntimeActivity.java": "a4ceedc93801d94c71ffe43bad26fdfd8459f7805d36498b2948ced28067e93c",
     "java/org/relaykite/runtime/RuntimeInstaller.java": "19c85e19d4232b3e1de072a8c1a7b385d32002c65f09fd27bd24fe73529a8f29",
     "java/org/relaykite/runtime/ScopedFileProvider.java": "fe7d505c5b40aeaa7e0fdc8254cde862e24bfd4366a4cbd766e73eae81ec9db5",
     "java/org/relaykite/runtime/ScopedFiles.java": "00ca765e5239d1ab58046ed98ef47dc2bd3684e9a688090bb15c3509160b2f55",

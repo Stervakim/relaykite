@@ -28,7 +28,7 @@ The phone needs existing Magisk root and Termux Python. For first installation w
 
 ## ChatGPT card ZIP / ZIP-карточка ChatGPT
 
-The `chatgpt/` folder contains `codaki-mini-codex-chatgpt-0.2.4.zip`, its source template and `package_card.py`. Import the public card to add setup/control workflows when archive import is supported. Card installation does not pair the device. Continue the existing private relay setup above under the new owner's ChatGPT account. If a connected card with these skills is needed, run `python chatgpt/package_card.py --app-id APP_ID` with the registered App ID from that owner's Sites deployment. Keep the resulting `.private/chatgpt/` archive private. Do not publish or reuse the author's private App ID. The phone runtime is 0.2.4 in this release. Follow the proxy/legacy migration guide before changing a working installation.
+The `chatgpt/` folder contains `codaki-mini-codex-chatgpt-0.2.5.zip`, its source template and `package_card.py`. Import the public card to add setup/control workflows when archive import is supported. Card installation does not pair the device. Continue the existing private relay setup above under the new owner's ChatGPT account. If a connected card with these skills is needed, run `python chatgpt/package_card.py --app-id APP_ID` with the registered App ID from that owner's Sites deployment. Keep the resulting `.private/chatgpt/` archive private. Do not publish or reuse the author's private App ID. The phone runtime is 0.2.5 in this release. Follow the proxy/legacy migration guide before changing a working installation.
 
 Карточка устанавливается отдельно; затем телефон подключается к личному серверу нового владельца. Сервер закрепляет ID аккаунта ChatGPT владельца, телефон использует свой токен. Публичная карточка не содержит привязку устройства или личный App ID автора.
 
@@ -50,6 +50,6 @@ The bundled update workflow retains your existing App reference and ChatGPT owne
 Встроенная инструкция обновления сохраняет существующий App ID и привязку к аккаунту ChatGPT владельца. Обновление одной карточки не меняет компоненты телефона. GPT использует доступные средства обновления/импорта; если клиент требует ручного импорта, он подготовит новый ZIP и укажет этот последний шаг. Берите файл из Releases этого проекта. [Настройка и обновление карточки](../chatgpt/README.md).
 
 
-## Optional PC links in 0.2.4
+## Optional PC links in 0.2.5
 
-The separate mini-codex-pc-0.2.4.zip contains the Windows background worker and its GPT card. See pc/INSTALL_WITH_CODEX.md in repository source. Phone operation remains independent. Preserve the 0.2.2 loopback outbound_proxy, enabled marker, service supervisor, private credentials, memory and journal when upgrading. No VLESS subscription, root setting or VPN policy is changed.
+The separate mini-codex-pc-0.2.5.zip contains the Windows background worker and its GPT card. See pc/INSTALL_WITH_CODEX.md in repository source. Phone operation remains independent. Preserve the 0.2.2 loopback outbound_proxy, enabled marker, service supervisor, private credentials, memory and journal when upgrading. No VLESS subscription, root setting or VPN policy is changed.

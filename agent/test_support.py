@@ -72,7 +72,7 @@ class SupportTests(unittest.TestCase):
             data=json.loads((base/'support'/'passport.json').read_text(encoding='utf-8'))
             self.assertEqual(report['package_count'],2)
             self.assertEqual(data['device']['codename'],'peridot')
-            self.assertEqual(data['python_version'],'Python 3.14.6')
+            self.assertEqual(data['python_version'],'Python '+sys.version.split()[0])
             self.assertEqual(data['packages'][0]['package'],'com.android.foo')
             self.assertTrue(next(p for p in data['packages'] if p['package']=='com.termux')['third_party'])
             self.assertTrue(data['modules'][0]['disabled'])
@@ -129,6 +129,7 @@ class SupportTests(unittest.TestCase):
             root=Path(d); module=root/'module'; module.mkdir()
             base=root/'private'; base.mkdir()
             shutil.copyfile(runtime.__file__,module/'support_runtime.py')
+            shutil.copyfile(Path(runtime.__file__).with_name('runtime_paths.py'),module/'runtime_paths.py')
             (module/'configure.py').write_text('from pathlib import Path\nBASE=Path('+repr(str(base))+')\n',encoding='utf-8')
             (module/'native_phone.py').write_text(
                 'from pathlib import Path\nBASE=Path('+repr(str(base))+')\n'

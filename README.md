@@ -6,13 +6,13 @@
 
 Control your Android phone and Windows PC through your own private MCP relay.
 
-[Website](https://stervakim.github.io/relaykite/) · [Download v0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4) · [Android setup](docs/install-android.md) · [Windows setup](pc/README.en.md) · [Русский](README.ru.md)
+[Website](https://stervakim.github.io/relaykite/) · [Download v0.2.5](https://github.com/Stervakim/relaykite/releases/tag/v0.2.5) · [Android setup](docs/install-android.md) · [Windows setup](pc/README.en.md) · [Русский](README.ru.md)
 
 RelayKite gives your AI assistant a way to act on the devices you own. Ask it to inspect your phone, open an app, work with files, or run an authorized PowerShell task on your PC. ChatGPT plans the task; a local agent carries it out and returns the result.
 
 **The Android agent runs on the phone itself.** After setup, everyday phone control does not require a permanently running computer, USB or desktop ADB. The Windows agent runs independently on its own PC. Both need internet and your private relay.
 
-Previously **Codaki Mini Codex**. This is the same project and v0.2.4 release under a new public name. Existing ZIP names, module IDs, tool names, credentials and installation paths retain their legacy names for compatibility.
+Previously **Codaki Mini Codex**. This is the same project and v0.2.5 release under a new public name. Existing ZIP names, module IDs, tool names, credentials and installation paths retain their legacy names for compatibility.
 
 ## What is it for?
 
@@ -36,7 +36,7 @@ These are example requests, not recorded demos. Actual results depend on your de
 | Requirements | Existing root, Magisk and Termux with Python | Python 3.14+, PowerShell and selected permissions |
 | Connection | Your authenticated HTTPS MCP relay and supported ChatGPT plugin | Your authenticated HTTPS MCP relay and supported ChatGPT plugin |
 | Does it need the other device? | No permanently running PC after setup | No phone required |
-| Install | `mini-codex-magisk-0.2.4.zip` | `mini-codex-pc-0.2.4.zip` |
+| Install | `mini-codex-magisk-0.2.5.zip` | `mini-codex-pc-0.2.5.zip` |
 | Guide | [Android installation](docs/install-android.md) | [Windows installation](pc/README.en.md) |
 
 ## How it works
@@ -55,17 +55,17 @@ The model runs in your active ChatGPT conversation. RelayKite supplies device to
 ## Get started
 
 1. **Check the requirements.** Android needs root/Magisk and Termux already installed; Windows needs Python 3.14+ and PowerShell. Check that your ChatGPT account supports the required personal plugin connection.
-2. **Download the right installer and `SHA256SUMS`** from [release v0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4). Check the SHA-256 checksum before installation.
+2. **Download the right installer and `SHA256SUMS`** from [release v0.2.5](https://github.com/Stervakim/relaykite/releases/tag/v0.2.5). Check the SHA-256 checksum before installation.
 3. **Follow the guide for your device.** Configure your own private relay and credentials, then connect your personal plugin. Importing a public card alone does not connect your device.
 4. **Verify with a small task.** Start with device status, inspect a test app or list a test folder, and check the actual result.
 
 For assisted installation, give Codex the release ZIP and checksum file:
 
-> Install RelayKite v0.2.4 from this ZIP on my chosen device. Read INSTALL_WITH_CODEX.md, verify SHA256SUMS and requirements, configure my own private relay, and verify the connection. Use the device tools available to you. Preserve existing credentials, pairings, permissions, memory and logs during an update.
+> Install RelayKite v0.2.5 from this ZIP on my chosen device. Read INSTALL_WITH_CODEX.md, verify SHA256SUMS and requirements, configure my own private relay, and verify the connection. Use the device tools available to you. Preserve existing credentials, pairings, permissions, memory and logs during an update.
 
 Initial Android preparation may need a computer. The installer does not install root or enable unavailable account features. [Compatibility](docs/compatibility.md) · [Access and data](docs/security.md).
 
-## Release 0.2.4
+## Release 0.2.5
 
 This release includes recovery after Android agent failure, single-instance protection and optional loopback proxy configuration. Advanced integrations include optional external memory, code-map queries and Portable Use tools that require their corresponding runtimes. They are not prerequisites for understanding the basic device-agent flow.
 
