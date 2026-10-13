@@ -1,6 +1,6 @@
 ---
 name: setup
-description: "Install and connect RelayKite — телефон for the owner; use for initial setup or a missing phone connection."
+description: "Install and connect Codaki Mini Codex — телефон for the owner; use for initial setup or a missing phone connection."
 ---
 
 Download the matching Mini Codex release and SHA256SUMS from the repository below. Verify the checksum and read INSTALL_WITH_CODEX.md inside the Magisk ZIP before phone installation. It requires preinstalled Magisk/root and Termux Python. Use an available authorized phone tool or a selected authorized ADB serial; a mobile chat alone cannot install the module.
@@ -11,4 +11,4 @@ Use the personal plugin created by Sites for the new owner. Obtain the actual re
 
 Verify the connected plugin with phone_status, then fresh read_ui. Confirm the intended device, root and support inventory. Report local installation, relay transport and connected-plugin verification separately. Never claim completion based only on installing this card.
 
-Source and releases: https://github.com/kalabuxova1-hash/relaykite
+Source and releases: https://github.com/kalabuxova1-hash/codaki-mini-codex
