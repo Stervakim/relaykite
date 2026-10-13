@@ -4,6 +4,8 @@
 
 Original Tencent external FTS/file memory adapter and original Graphify code reader; source/status/device/project/version metadata, read-back and bounded search. Optional memory setup requires Node.js in Termux. Existing Portable Use IPC bridge supports the 12 installed engine operations. No parallel Android sessions or background LLM are claimed. Includes verified installed worker delivery/metrics behavior, memory supervisor recovery and preserved private configuration.
 
+Maintenance: twelve typed `phone_use_*` tools expose the existing Android Portable engine, with stable request IDs and native MCP screenshots. `phone_job_cancel` cancels only owner-bound queued jobs; running input remains uncancellable. Added Portable session/receipt instructions. Requires an existing Portable engine; this increment does not add parallel Android sessions, Windows Portable IPC or managed terminals.
+
 ## 0.2.3 — Mini Codex PC
 
 This release includes the 0.2.2 Android crash supervisor and optional loopback Shadow VLESS proxy. Automatic route selection respects Shadow VLESS standby behind an existing Android VPN and restores the configured proxy when standby ends. Existing private proxy settings, enabled markers, keys, memory and journal are preserved.

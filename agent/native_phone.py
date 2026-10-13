@@ -29,6 +29,10 @@ AGENT_STORAGE_RESERVE_BYTES=16*1024*1024
 MAX_MEMORY_BYTES=TOTAL_STORAGE_BYTES-AGENT_STORAGE_RESERVE_BYTES
 _RECOVERED_MEMORY_DATABASES=set()
 
+from portable_tools import OPERATIONS as PORTABLE_OPERATIONS,wrapper as portable_wrapper
+for _portable_operation in PORTABLE_OPERATIONS:
+    globals()['phone_use_'+_portable_operation]=portable_wrapper(_portable_operation)
+
 
 def adb(*args: str, timeout: int=30, binary: bool=False):
     """Implement the existing tool backend using local su, not an ADB connection."""
@@ -621,7 +625,9 @@ def validate_schema(value, schema: dict, name: str='arguments') -> None:
     if kind=='integer':
         if value<schema.get('minimum',value) or value>schema.get('maximum',value): raise ValueError(name+' is outside the allowed range')
     if kind=='string':
+        if '\0' in value:raise ValueError(name+' contains a null character')
         if len(value)<schema.get('minLength',0) or len(value)>schema.get('maxLength',len(value)): raise ValueError(name+' has an invalid length')
+        if 'pattern' in schema and not re.fullmatch(schema['pattern'],value):raise ValueError(name+' has an invalid pattern')
     if kind=='object':
         properties=schema.get('properties',{})
         if any(key not in value for key in schema.get('required',[])): raise ValueError(name+' is missing a required field')
@@ -629,6 +635,7 @@ def validate_schema(value, schema: dict, name: str='arguments') -> None:
         for key,item in value.items():
             if key in properties: validate_schema(item,properties[key],name+'.'+key)
     if kind=='array':
+        if len(value)<schema.get('minItems',0):raise ValueError(name+' has too few items')
         if len(value)>schema.get('maxItems',len(value)): raise ValueError(name+' has too many items')
         for item in value: validate_schema(item,schema.get('items',{}),name+'[]')
 
@@ -705,6 +712,7 @@ def dispatch(tool: str, arguments: dict) -> dict:
         inspect.signature(function).bind(**arguments)
         context = None if tool.startswith('phone_memory_') else operational_memory_context(tool, arguments)
         result=function(**arguments)
+        if tool.startswith('phone_use_'):return result
         if context is not None:
             receipt = remember_write_evidence(tool, arguments, result)
             if receipt is not None:

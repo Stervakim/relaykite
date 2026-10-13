@@ -12,7 +12,7 @@ card_builder=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(card_builder)
 MODULE_FILES=('module.prop','skip_mount','customize.sh','service.sh','stop.sh','uninstall.sh','configure.sh','INSTALL_WITH_CODEX.md')
 AGENT_FILES=('native_phone.py','phone_agent.py','network_route.py','pc_peer.py','portable_peer.py','tool-definitions.json','configure.py','support_runtime.py','support/SKILL.md','support/services.md',
-             'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip',
+             'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip','portable_tools.py',
              'memory-runtime/codaki-external.mjs','memory-runtime/LICENSE.Tencent','memory-runtime/LICENSE.Graphify','memory-runtime/LICENSE.NetworkX',
              'memory-runtime/external.ts','memory-runtime/external.test.ts','memory-runtime/tencent-external.patch','memory-runtime/versions.json','memory-runtime/README.md')
 

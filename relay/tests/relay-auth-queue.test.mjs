@@ -121,3 +121,25 @@ test("expired queued/running jobs become uncertain and are not claimed again", a
     assert.equal((await f.relay.nextJob()).status, 204);
   } finally { f.close(); }
 });
+test("cancel applies only to owner queued jobs and is idempotent",async()=>{
+ const f=await fixture();
+ try{
+  const insert=f.sqlite.prepare("INSERT INTO phone_jobs(id,request_key,owner,tool,arguments,state,created_at,expires_at) VALUES(?,?,?,?,?,?,?,?)");
+  const t=f.relay.now();
+  for(const state of ['queued','running'])insert.run('cancel-'+state,'key-'+state,'owner-a','phone_status','{}',state,t,t+120);
+  assert.equal((await f.relay.cancelJob('cancel-queued','owner-b')).isError,true);
+  assert.equal((await f.relay.cancelJob('cancel-running','owner-a')).isError,true);
+  for(let i=0;i<2;i++)assert.equal(JSON.parse((await f.relay.cancelJob('cancel-queued','owner-a')).content[0].text).status,'cancelled');
+  assert.equal(f.sqlite.prepare("SELECT state FROM phone_jobs WHERE id='cancel-running'").get().state,'running');
+  assert.equal((await f.relay.nextJob()).status,204);
+  assert.equal(JSON.parse((await f.relay.jobResult('cancel-queued','owner-a')).content[0].text).status,'cancelled');
+ }finally{f.close();}
+});
+test("empty batch and invalid stable identity are rejected before queueing",async()=>{
+ const f=await fixture();
+ try{
+  await assert.rejects(f.relay.callTool('phone_use_batch',{request_id:'fixture_batch_1',session_id:'s',observation_id:'o',steps:[]},'owner-a','outer1'),/few|items/);
+  await assert.rejects(f.relay.callTool('phone_use_capabilities',{request_id:'../../evil'},'owner-a','outer2'),/pattern/);
+  assert.equal(f.sqlite.prepare('SELECT count(*) AS n FROM phone_jobs').get().n,0);
+ }finally{f.close();}
+});
