@@ -1,6 +1,7 @@
 """Independent Android virtual-display leases and one serialized inspector."""
 import importlib.util,re,secrets,time
 from .android import AndroidBackend
+from .engine import UseError
 from .windows_sessions import WindowsSessions
 
 def make_owner(token):
@@ -19,6 +20,7 @@ def make_owner(token):
 
 class AndroidSessions(WindowsSessions):
     def __init__(self,journal_path,clock=time.monotonic,max_sessions=3,backend_class=AndroidBackend,owner_factory=make_owner):
+        self.package_owners={}
         self.inspector=backend_class()
         if backend_class is AndroidBackend:
             # CLI owns the existing single-agent flock before constructing us.
@@ -33,8 +35,22 @@ class AndroidSessions(WindowsSessions):
         super().__init__(lambda:backend_class(legacy=owner_factory(secrets.token_hex(16)),inspector=self.inspector),journal_path,clock,max_sessions)
     def _release(self,sid):
         super()._release(sid)
+        self.package_owners={package:owner for package,owner in self.package_owners.items() if owner!=sid}
         if not self.sessions:self.inspector.stop_inspector()
     def _run(self,op,args):
+        if op=='launch':
+            self.expire()
+            sid=args.get('session_id');app=args.get('app_id')
+            if sid not in self.sessions:raise UseError('Missing or expired session','SESSION_EXPIRED')
+            if app not in {item['app_id'] for item in self.sessions[sid].backend.apps()}:
+                raise UseError('App must be returned by apps')
+            package=app.split('/',1)[0]
+            owner=self.package_owners.get(package)
+            if owner is not None and owner!=sid:
+                raise UseError('Package already belongs to another display lease; stop that session first','RESOURCE_CONFLICT')
+            # Retain the claim even on an uncertain launch. Android may have
+            # moved its singleton activity before reporting the failure.
+            self.package_owners[package]=sid
         if op=='capabilities':
             return {**self.backend.capabilities(),'parallel_sessions':True,'batch':True,'max_batch_steps':12,
                     'max_batch_timeout_ms':30000,'max_sessions':self.max_sessions,'session_scope':'virtual_display',

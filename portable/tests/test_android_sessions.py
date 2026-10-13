@@ -8,7 +8,7 @@ class Fake:
     def __init__(self,*args,**kwargs):
         self.target=None;self.actions=[];self.inspector=kwargs.get('inspector');self.stopped=False
     def capabilities(self):return {'platform':'android','actions':['click','key']}
-    def apps(self):return []
+    def apps(self):return [{'app_id':'owned.app/Main','name':'Owned app'}, {'app_id':'owned.app/Other','name':'Other activity'}]
     def start(self,target=None,lease_seconds=300):
         if target is not None:raise UseError('No external target')
         Fake.seq+=1;self.target=str(Fake.seq);return {'target':self.target}
@@ -37,6 +37,15 @@ class AndroidSessionsTests(unittest.TestCase):
         self.assertEqual(self.call('observe',{'session_id':b['session_id']})['target'],b['target'])
         self.assertFalse(self.manager.inspector.stopped)
         self.call('session_stop',{'session_id':b['session_id']});self.assertTrue(self.manager.inspector.stopped)
+    def test_package_cannot_move_between_owned_displays_until_release(self):
+        a=self.call('session_start')['session_id'];b=self.call('session_start')['session_id']
+        self.call('launch',{'session_id':a,'app_id':'owned.app/Main'})
+        with self.assertRaises(UseError) as conflict:
+            self.call('launch',{'session_id':b,'app_id':'owned.app/Other'})
+        self.assertEqual(conflict.exception.code,'RESOURCE_CONFLICT')
+        self.assertEqual(self.call('observe',{'session_id':a})['session_id'],a)
+        self.call('session_stop',{'session_id':a})
+        self.assertEqual(self.call('launch',{'session_id':b,'app_id':'owned.app/Main'})['requested'],'owned.app/Main')
     def test_independent_expiry_and_capacity(self):
         a=self.call('session_start',{'lease_seconds':30});b=self.call('session_start',{'lease_seconds':90});self.call('session_start')
         with self.assertRaises(UseError):self.call('session_start')
