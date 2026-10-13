@@ -1,5 +1,7 @@
 import unittest, tempfile, json, sys, hashlib
 from pathlib import Path
+runtime=Path(__file__).with_name('graph-runtime.zip')
+if runtime.exists():sys.path.insert(0,str(runtime))
 import networkx as nx
 from networkx.readwrite import json_graph
 from graphify.serve import _query_graph_text, _read_graph

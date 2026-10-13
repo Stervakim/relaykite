@@ -109,7 +109,7 @@ class StandaloneTests(unittest.TestCase):
             journal=Journal(Path(directory))
             with patch('native_phone.dispatch') as executor:
                 self.assertEqual(execute_job(make_job(expires_at=time.time()-1),journal,executor)[2],'uncertain')
-                with self.assertRaises(InterruptedError): execute_job(make_job(),journal,executor,disabled=lambda:True)
+                with self.assertRaises(InterruptedError): execute_job(make_job('disabled-job'),journal,executor,disabled=lambda:True)
                 executor.assert_not_called()
             journal.db.close()
 

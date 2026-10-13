@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.4 — Tencent memory and Graphify
+
+Original Tencent external FTS/file memory adapter and original Graphify code reader; source/status/device/project/version metadata, read-back and bounded search. Optional memory setup requires Node.js in Termux. Existing Portable Use IPC bridge supports the 12 installed engine operations. No parallel Android sessions or background LLM are claimed. Includes verified installed worker delivery/metrics behavior, memory supervisor recovery and preserved private configuration.
+
 ## 0.2.3 — Mini Codex PC
 
 This release includes the 0.2.2 Android crash supervisor and optional loopback Shadow VLESS proxy. Automatic route selection respects Shadow VLESS standby behind an existing Android VPN and restores the configured proxy when standby ends. Existing private proxy settings, enabled markers, keys, memory and journal are preserved.

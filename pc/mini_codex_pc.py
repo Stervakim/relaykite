@@ -18,7 +18,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-VERSION = '0.2.3'
+VERSION = '0.2.4'
 CAPABILITIES = {'terminal', 'files_read', 'files_write', 'codex'}
 OPERATIONS = {'pc_status': None, 'pc_terminal': 'terminal', 'pc_read_file': 'files_read',
               'pc_write_file': 'files_write', 'pc_list_files': 'files_read', 'pc_codex': 'codex'}

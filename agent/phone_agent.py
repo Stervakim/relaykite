@@ -19,6 +19,7 @@ import urllib.parse
 import urllib.request
 
 import native_phone
+from network_route import choose_proxy
 
 MAX_JOURNAL=5*1024*1024
 MAX_RESULT=4*1024*1024-8192
@@ -66,14 +67,21 @@ class Relay:
         self.headers={'Authorization':'Bearer '+token,'Accept':'application/json'}
         if config.get('sites_authorization'):
             self.headers['OAI-Sites-Authorization']=config['sites_authorization']
-        proxy=config.get('outbound_proxy','')
+        self.configured_proxy=config.get('outbound_proxy','')
+        proxy=choose_proxy(self.configured_proxy)
+        self.selected_proxy=proxy
         # Explicit local VLESS HTTP proxy overrides ambient shell proxy settings.
         # A blank value preserves the default urllib environment behavior.
-        proxy_handler=urllib.request.ProxyHandler({'https':proxy}) if proxy else urllib.request.ProxyHandler()
+        proxy_handler=urllib.request.ProxyHandler({'https':proxy}) if proxy else urllib.request.ProxyHandler({} if self.configured_proxy else None)
         self.opener=urllib.request.build_opener(NoRedirect(),proxy_handler,
                                                  urllib.request.HTTPSHandler(context=ssl.create_default_context()))
 
     def request(self,path:str,body:dict|None=None):
+        proxy=choose_proxy(self.configured_proxy)
+        if proxy!=self.selected_proxy:
+            proxy_handler=urllib.request.ProxyHandler({'https':proxy} if proxy else ({} if self.configured_proxy else None))
+            self.opener=urllib.request.build_opener(NoRedirect(),proxy_handler,urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+            self.selected_proxy=proxy
         headers=self.headers.copy()
         data=None if body is None else json.dumps(body,ensure_ascii=False,separators=(',',':')).encode('utf-8')
         if data is not None:

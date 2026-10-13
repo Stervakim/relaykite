@@ -1,0 +1,7 @@
+{
+  "tencent_base": "b1f79fc4714b1e20a1ab94ec6b98e50100af6dc4",
+  "adapter_commit": "71c2bcec8fbf5b0be8378fa30e2570d6788ccda6",
+  "graphify": "0.9.88",
+  "networkx": "3.7",
+  "node_tested": "24.18.0"
+}

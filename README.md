@@ -4,7 +4,9 @@
 
 **Mini Codex Android · Миникодекс**
 
-**English** · [Русский](README.ru.md) &nbsp; | &nbsp; **v0.2.3** · [MIT](LICENSE)
+Version0.2.4 adds original Tencent external memory, Graphify code queries and the existing Portable Use IPC bridge. Memory setup is optional and requires Termux Node24; GPT in the active chat supplies summaries. No parallel Android sessions or background LLM are claimed. Runtime provenance and setup: [memory guide](agent/memory-runtime/README.md).
+
+**English** · [Русский](README.ru.md) &nbsp; | &nbsp; **v0.2.4** · [MIT](LICENSE)
 
 **Codaki AI · Mini Codex Android is an AI agent for controlling your phone through ChatGPT.** Launch apps, inspect the screen, manage files and automate tasks on a rooted Android phone. The project is also known as **Codaki ИИ** and **Миникодекс** in Russian.
 
@@ -20,7 +22,7 @@
 
 <a name="codaki-features"></a>
 
-**New in 0.2.3:** auto-restart on agent failure, optional validated loopback HTTP proxy for VLESS, single-instance lock, configuration/state preservation. [Boot + proxy guide](docs/resilient-boot.md)
+**New in 0.2.4:** auto-restart on agent failure, optional validated loopback HTTP proxy for VLESS, single-instance lock, configuration/state preservation. [Boot + proxy guide](docs/resilient-boot.md)
 
 ## What Codaki AI can do
 
@@ -70,18 +72,18 @@ Codaki AI combines ChatGPT phone control and Android automation: a Python worker
 
 ### Install with Codex
 
-1. **Download the Codaki release.** Get `mini-codex-magisk-0.2.3.zip` and `SHA256SUMS` from the [latest release](https://github.com/kalabuxova1-hash/codaki-mini-codex/releases/latest).
+1. **Download the Codaki release.** Get `mini-codex-magisk-0.2.4.zip` and `SHA256SUMS` from the [latest release](https://github.com/kalabuxova1-hash/codaki-mini-codex/releases/latest).
 
 2. **Give the files to Codex.** Ask it to check requirements, install the module and configure your private server and plugin. A ready-to-use prompt is below.
 
 3. **Check the connection.** Select your personal “Codaki Mini Codex — phone” plugin in ChatGPT and ask: “Check my phone's status.”
 
-**ChatGPT card ZIP:** [download `codaki-mini-codex-chatgpt-0.2.3.zip`](chatgpt/codaki-mini-codex-chatgpt-0.2.3.zip). It is also bundled inside the installer under `chatgpt/`. Import adds the workflows; connect your own phone after installation. The public ZIP has no author-specific App ID or device pairing. [Connect the card to your own server](chatgpt/README.md).
+**ChatGPT card ZIP:** [download `codaki-mini-codex-chatgpt-0.2.4.zip`](chatgpt/codaki-mini-codex-chatgpt-0.2.4.zip). It is also bundled inside the installer under `chatgpt/`. Import adds the workflows; connect your own phone after installation. The public ZIP has no author-specific App ID or device pairing. [Connect the card to your own server](chatgpt/README.md).
 
 <details>
 <summary><strong>Show the installation prompt for Codex</strong></summary>
 
-> Install Codaki Mini Codex 0.2.3 from this file on my phone. Read INSTALL_WITH_CODEX.md inside the ZIP, verify requirements, configure my own private relay/plugin and check the connection. Use available phone tools or authorized ADB; retain existing settings and memory on upgrade.
+> Install Codaki Mini Codex 0.2.4 from this file on my phone. Read INSTALL_WITH_CODEX.md inside the ZIP, verify requirements, configure my own private relay/plugin and check the connection. Use available phone tools or authorized ADB; retain existing settings and memory on upgrade.
 
 If Codex already has an authorized phone-control channel, it can use it. Otherwise connect the phone to the computer running Codex and approve USB debugging. Codex handles the supported installation and configuration steps; Android may require you to unlock after reboot.
 
@@ -154,7 +156,7 @@ Memory stores short notes, preferences and compressed archives between tasks. Me
 - A local passport records Android version, installed-package metadata, Magisk modules, important paths and a verification timestamp. Each phone generates its own inventory locally; the support guide instructs the agent to refresh it after component changes.
 - `phone_status` exposes the guide, summary, freshness flag and refresh command.
 - Existing memory retrieves previous confirmed solutions and saves new verified lessons. No second history store or model-weight training is added.
-- The 0.2.3 module and ChatGPT card display version 0.2.3; upgrades retain connection settings, memory and the job journal.
+- The 0.2.4 module and ChatGPT card display version 0.2.4; upgrades retain connection settings, memory and the job journal.
 
 [Codaki 0.2.0 changelog](CHANGELOG.md)
 
@@ -163,7 +165,7 @@ Memory stores short notes, preferences and compressed archives between tasks. Me
 <details>
 <summary><strong>Compatibility, verified devices and access</strong></summary>
 
-**Verified personal configuration:** Redmi Turbo 3, Android 16, root, Magisk and Termux. The public v0.2.3 ZIP was checked by host and mocked tests but not installed over the working personal installation. Other devices require separate testing.
+**Verified personal configuration:** Redmi Turbo 3, Android 16, root, Magisk and Termux. The public v0.2.4 ZIP was checked by host and mocked tests but not installed over the working personal installation. Other devices require separate testing.
 
 To stop control, disable the Codaki Mini Codex module in Magisk. Removing the module preserves memory and configuration. Do not share credentials or access to your personal plugin.
 
@@ -191,11 +193,11 @@ Voluntary support on [Boosty](https://boosty.to/mini_codexandroid) helps develop
 **Codaki** is an independent open-source project, not an official OpenAI product or the official Codex CLI. Licensed under [MIT](LICENSE).
 
 
-## Mini Codex PC 0.2.3 — PowerShell и другие плагины
+## Mini Codex PC 0.2.4 — PowerShell и другие плагины
 
 [Установка через Codex и обновление новым ZIP](pc/README.md) · [Подробная инструкция](pc/INSTALL_WITH_CODEX.md)
 
-Скачайте `mini-codex-pc-0.2.3.zip` и `codaki-mini-codex-pc-chatgpt-0.2.3.zip` из [релиза 0.2.3](https://github.com/kalabuxova1-hash/codaki-mini-codex/releases/tag/v0.2.3). ZIP-карточка также находится внутри установщика. Передайте ZIP и SHA256SUMS Codex и попросите установить по INSTALL_WITH_CODEX.md. Вышла новая версия → дайте ZIP GPT → попросите обновить агент и плагин, сохранив связи, App ID, права, ключи и журнал.
+Скачайте `mini-codex-pc-0.2.4.zip` и `codaki-mini-codex-pc-chatgpt-0.2.4.zip` из [релиза 0.2.4](https://github.com/kalabuxova1-hash/codaki-mini-codex/releases/tag/v0.2.4). ZIP-карточка также находится внутри установщика. Передайте ZIP и SHA256SUMS Codex и попросите установить по INSTALL_WITH_CODEX.md. Вышла новая версия → дайте ZIP GPT → попросите обновить агент и плагин, сохранив связи, App ID, права, ключи и журнал.
 
 Фоновый Windows-агент без окна выполняет разрешённые команды PowerShell и операции с файлами. Телефон для него не требуется. Телефонный Mini Codex по-прежнему работает без ПК. Оба устройства работают самостоятельно; постоянное соединение между ними не нужно. По запросу можно обратиться к сопряжённому устройству, если оно онлайн.
 
