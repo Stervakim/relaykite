@@ -1,4 +1,4 @@
-import copy,tempfile,unittest
+import copy,tempfile,unittest,threading,time
 from pathlib import Path
 from unittest.mock import patch
 from portable.engine import UseError
@@ -46,6 +46,24 @@ class AndroidSessionsTests(unittest.TestCase):
         self.assertEqual(self.call('observe',{'session_id':a})['session_id'],a)
         self.call('session_stop',{'session_id':a})
         self.assertEqual(self.call('launch',{'session_id':b,'app_id':'owned.app/Main'})['requested'],'owned.app/Main')
+    def test_awaited_batch_does_not_hold_independent_display_read(self):
+        self.manager.clock=time.monotonic
+        a=self.call('session_start');b=self.call('session_start')
+        obs=self.call('observe',{'session_id':a['session_id']})
+        waiting=threading.Event();done=[];original=Fake.snapshot
+        def snapshot(backend,screenshot=False):
+            if backend.target==a['target']:waiting.set()
+            return original(backend,screenshot)
+        args={'session_id':a['session_id'],'observation_id':obs['observation_id'],
+              'steps':[{'wait_for':{'text':'Not present'},'wait_timeout_ms':1200,'action':{'kind':'click','selector':{'text':'Own Button'}}}]}
+        def batch():done.append(self.manager.execute('batch',args,'concurrent_android_batch'))
+        with patch.object(Fake,'snapshot',snapshot):
+            thread=threading.Thread(target=batch);thread.start();self.assertTrue(waiting.wait(1))
+            start=time.monotonic();result=self.call('observe',{'session_id':b['session_id']});elapsed=time.monotonic()-start
+            thread.join(3)
+        self.assertFalse(thread.is_alive());self.assertEqual(result['target'],b['target'])
+        self.assertLess(elapsed,.5,'Independent read was held by a wait in another batch')
+        self.assertEqual(done[0]['status'],'stopped');self.assertEqual(done[0]['completed'],0)
     def test_independent_expiry_and_capacity(self):
         a=self.call('session_start',{'lease_seconds':30});b=self.call('session_start',{'lease_seconds':90});self.call('session_start')
         with self.assertRaises(UseError):self.call('session_start')

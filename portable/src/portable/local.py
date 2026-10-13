@@ -78,14 +78,32 @@ def _prepare_listener(path):
     except Exception:listener.close();raise
 
 class LocalServer:
-    """One IPC thread, one existing Engine; stop interrupts partial client reads."""
+    """Bounded concurrent clients sharing one serialized Engine and journal."""
     def __init__(self,engine,stop_event,path=SOCKET):
         self.engine=engine;self.external_stop=stop_event;self.stop_event=threading.Event()
         self.listener,self.path,self.identity=_prepare_listener(path)
-        self.connection=None;self.connection_lock=threading.Lock()
+        self.connections=set();self.workers=set();self.connection_lock=threading.Lock();self.slots=threading.BoundedSemaphore(4)
         self.thread=threading.Thread(target=self._run,name='portable-local-ipc',daemon=True)
     def start(self):self.thread.start();return self
     def _stopping(self):return self.stop_event.is_set() or self.external_stop.is_set()
+    def _handle(self,connection):
+        try:
+            with connection:
+                try:
+                    if _peer_uid(connection)!=0:raise UseError('Phone IPC requires root peer')
+                    request=receive(connection,stop_event=self.stop_event,timeout_seconds=2)
+                    if self._stopping():return
+                    out=dispatch(self.engine,request)
+                    raw=(json.dumps(out,ensure_ascii=False)+'\n').encode()
+                    if len(raw)>RESULT_LIMIT:raw=b'{"error":"Result exceeds IPC limit; inspect journal without replay","code":"RESULT_TOO_LARGE"}\n'
+                except (ValueError,TypeError,KeyError,OSError,UseError):raw=b'{"error":"Malformed or unauthorized IPC request","code":"REJECTED"}\n'
+                except Exception:raw=b'{"error":"IPC outcome unavailable; inspect journal without replay","code":"UNCERTAIN"}\n'
+                try:connection.settimeout(.5);connection.sendall(raw)
+                except OSError:pass
+        finally:
+            with self.connection_lock:
+                self.connections.discard(connection);self.workers.discard(threading.current_thread())
+            self.slots.release()
     def _run(self):
         try:
             while not self._stopping():
@@ -94,21 +112,13 @@ class LocalServer:
                 except OSError:
                     if self._stopping():break
                     raise
-                with connection:
-                    with self.connection_lock:self.connection=connection
-                    try:
-                        if _peer_uid(connection)!=0:raise UseError('Phone IPC requires root peer')
-                        request=receive(connection,stop_event=self.stop_event,timeout_seconds=2)
-                        if self._stopping():continue
-                        out=dispatch(self.engine,request)
-                        raw=(json.dumps(out,ensure_ascii=False)+'\n').encode()
-                        if len(raw)>RESULT_LIMIT:raw=b'{"error":"Result exceeds IPC limit; inspect journal without replay","code":"RESULT_TOO_LARGE"}\n'
-                    except (ValueError,TypeError,KeyError,OSError,UseError):raw=b'{"error":"Malformed or unauthorized IPC request","code":"REJECTED"}\n'
-                    except Exception:raw=b'{"error":"IPC outcome unavailable; inspect journal without replay","code":"UNCERTAIN"}\n'
-                    try:connection.settimeout(.5);connection.sendall(raw)
+                if not self.slots.acquire(blocking=False):
+                    try:connection.sendall(b'{"error":"IPC client capacity reached; retry with original request ID","code":"BUSY"}\n')
                     except OSError:pass
-                    finally:
-                        with self.connection_lock:self.connection=None
+                    connection.close();continue
+                worker=threading.Thread(target=self._handle,args=(connection,),daemon=True)
+                with self.connection_lock:self.connections.add(connection);self.workers.add(worker)
+                worker.start()
         finally:
             self.listener.close()
             try:
@@ -118,11 +128,13 @@ class LocalServer:
     def close(self):
         self.stop_event.set()
         with self.connection_lock:
-            if self.connection is not None:
-                try:self.connection.shutdown(socket.SHUT_RDWR)
+            for connection in self.connections:
+                try:connection.shutdown(socket.SHUT_RDWR)
                 except OSError:pass
         # Join before engine cleanup. Already started actions must finish their receipt.
         self.thread.join()
+        with self.connection_lock:workers=list(self.workers)
+        for worker in workers:worker.join()
 
 def serve(engine,stop_event,path=SOCKET):
     server=LocalServer(LockedEngine(engine),stop_event,path).start()

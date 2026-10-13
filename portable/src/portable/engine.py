@@ -174,6 +174,7 @@ class Engine:
     def _current_observation(self,session_id):
         self.require_session({'session_id':session_id})
         return self.observation
+    def _batch_pause(self,seconds):time.sleep(seconds)
     def _run_batch(self,args,parent_id):
         from .mcp import TOOLS, validate
         schema=next(t['inputSchema'] for t in TOOLS if t['name']=='use_batch')
@@ -240,7 +241,7 @@ class Engine:
                     except Exception:return stop(index,'BACKEND_FAILED','Could not observe the awaited target')
                     remaining=until-self.clock()
                     if remaining<=0:return stop(index,'TIMEOUT','Awaited target did not appear uniquely')
-                    time.sleep(min(.1,remaining))
+                    self._batch_pause(min(.1,remaining))
             if self.clock()>=deadline:return stop(index,'TIMEOUT','Batch deadline reached; later steps were not started')
             child_id='batch_'+digest(parent_id)[:48]+'_%02d'%index
             result['inflight_request_id']=child_id

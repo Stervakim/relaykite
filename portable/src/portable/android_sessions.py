@@ -1,5 +1,5 @@
 """Independent Android virtual-display leases and one serialized inspector."""
-import importlib.util,re,secrets,time
+import importlib.util,re,secrets,time,threading
 from .android import AndroidBackend
 from .engine import UseError
 from .windows_sessions import WindowsSessions
@@ -21,6 +21,7 @@ def make_owner(token):
 class AndroidSessions(WindowsSessions):
     def __init__(self,journal_path,clock=time.monotonic,max_sessions=3,backend_class=AndroidBackend,owner_factory=make_owner):
         self.package_owners={}
+        self.busy_sessions={}
         self.inspector=backend_class()
         if backend_class is AndroidBackend:
             # CLI owns the existing single-agent flock before constructing us.
@@ -33,11 +34,26 @@ class AndroidSessions(WindowsSessions):
                 if not re.fullmatch('[a-f0-9]{32}',directory.name):continue
                 backend_class(legacy=owner_factory(directory.name),inspector=self.inspector).close()
         super().__init__(lambda:backend_class(legacy=owner_factory(secrets.token_hex(16)),inspector=self.inspector),journal_path,clock,max_sessions)
+        self.batch_condition=threading.Condition(self.lock)
+    def _batch_pause(self,seconds):
+        # Condition.wait releases all recursive acquisitions, including the
+        # agent boundary's lock, then restores them before inspecting/input.
+        self.batch_condition.wait(timeout=seconds)
+    def _run_batch(self,args,parent_id):
+        sid=args.get('session_id')
+        if sid in self.busy_sessions:raise UseError('Session already has a running batch','RESOURCE_CONFLICT')
+        self.busy_sessions[sid]=threading.get_ident()
+        try:return super()._run_batch(args,parent_id)
+        finally:self.busy_sessions.pop(sid,None)
     def _release(self,sid):
         super()._release(sid)
         self.package_owners={package:owner for package,owner in self.package_owners.items() if owner!=sid}
         if not self.sessions:self.inspector.stop_inspector()
     def _run(self,op,args):
+        sid=args.get('session_id')
+        owner=self.busy_sessions.get(sid)
+        if owner is not None and owner!=threading.get_ident():
+            raise UseError('Session has an active batch; inspect its original result','RESOURCE_CONFLICT')
         if op=='launch':
             self.expire()
             sid=args.get('session_id');app=args.get('app_id')

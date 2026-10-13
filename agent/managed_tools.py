@@ -70,7 +70,7 @@ def resources(tool,args):
     result=[]
     if tool.startswith('phone_use_'):
         if args.get('session_id'):result.append('session:'+args['session_id'])
-        if tool not in ('phone_use_observe','phone_use_result','phone_use_diagnostics','phone_use_capabilities','phone_use_apps'):result.append('ui:android')
+        if tool not in ('phone_use_batch','phone_use_observe','phone_use_result','phone_use_diagnostics','phone_use_capabilities','phone_use_apps'):result.append('ui:android')
     if tool in ('read_ui','tap','swipe','keypress','launch_app','screenshot'):result.append('ui:physical')
     if tool=='root_shell':result.append('system:root-shell')
     if tool=='phone_install_apk':result.append('package-manager')
