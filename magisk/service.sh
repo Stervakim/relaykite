@@ -22,7 +22,17 @@ PREFIX=/data/data/com.termux/files/usr
   # Validate before running and retain original owner credentials/memory/journal.
   "$PREFIX/bin/python" "$MODDIR/agent/configure.py" --validate >/dev/null 2>&1 || exit 0
   "$PREFIX/bin/python" "$MODDIR/agent/support_runtime.py" refresh >/dev/null 2>&1 || :
+  memory_child=
+  start_memory() {
+    if [ -f "$BASE/memory-service.json" ] && { [ -z "$memory_child" ] || ! kill -0 "$memory_child" 2>/dev/null; }; then
+      [ -z "$memory_child" ] || wait "$memory_child" 2>/dev/null || :
+      "$PREFIX/bin/python" "$MODDIR/agent/memory_service.py" </dev/null >/dev/null 2>&1 &
+      memory_child=$!
+    fi
+  }
   while [ -f "$BASE/enabled" ] && [ ! -f "$MODDIR/disable" ] && [ ! -f "$MODDIR/remove" ]; do
+    start_memory
+    memory_tick=0
     # The Python worker holds a nonblocking flock; concurrent supervisors
     # cannot execute a second job worker or duplicate root actions.
     "$PREFIX/bin/python" "$MODDIR/agent/phone_agent.py" --config "$BASE/config.json" >"$BASE/startup.log" 2>&1 &
@@ -33,6 +43,8 @@ PREFIX=/data/data/com.termux/files/usr
         wait "$child" 2>/dev/null
         exit 0
       fi
+      memory_tick=$((memory_tick + 1))
+      if [ "$memory_tick" -ge 5 ]; then start_memory; memory_tick=0; fi
       sleep 3
     done
     wait "$child" 2>/dev/null || :

@@ -458,7 +458,7 @@ def compact_memory(db: sqlite3.Connection) -> int:
         db.execute('VACUUM')
 
 
-def phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> dict:
+def _legacy_phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> dict:
     if not isinstance(title,str) or not title.strip() or len(title)>160:
         raise ValueError('Title must be 1..160 characters')
     if not isinstance(content,str) or not content.strip() or len(content.encode('utf-8'))>6144:
@@ -491,7 +491,7 @@ def phone_memory_save(title: str, content: str, tags: list[str] | None=None) -> 
     return {'saved':True,'title':clean_title,'notes_count':count,'archive_count':archive_count,'bytes':size,'max_bytes':MAX_MEMORY_BYTES,'total_storage_cap_bytes':TOTAL_STORAGE_BYTES,'agent_reserve_bytes':AGENT_STORAGE_RESERVE_BYTES,'redacted':clean_title!=title.strip() or clean_content!=content.strip() or clean_tags!=tags}
 
 
-def phone_memory_search(query: str, limit: int=10) -> dict:
+def _legacy_phone_memory_search(query: str, limit: int=10) -> dict:
     if not isinstance(query,str) or len(query)>2000 or not 1<=limit<=30:
         raise ValueError('Invalid memory query/limit')
     # SQLite LIKE only folds ASCII by default. Fold Unicode explicitly and
@@ -512,6 +512,100 @@ def phone_memory_search(query: str, limit: int=10) -> dict:
         finally:
             db.close()
     return {'notes':[{'id':r[0],'title':r[1],'content':r[2],'tags':json.loads(r[3]),'updated':r[4],'archived':False} for r in rows]+[{'id':r[0],'title':r[1],'content':r[2],'tags':json.loads(r[3]),'updated':r[4],'archived':True} for r in archive_rows]}
+
+
+def _memory_bridge():
+    from memory_bridge import MemoryBridge
+    return MemoryBridge()
+
+
+def phone_memory_save(title: str, content: str, tags: list[str] | None=None, memory: dict | None=None) -> dict:
+    from memory_bridge import MemoryUnavailable
+    bridge=_memory_bridge()
+    if not bridge.configured:
+        if memory is not None: raise RuntimeError('Tencent memory is not configured; structured memory was not saved')
+        return {**_legacy_phone_memory_save(title,content,tags),'engine':'legacy'}
+    if not isinstance(title,str) or not title.strip() or len(title)>160: raise ValueError('Invalid memory title')
+    if not isinstance(content,str) or not content.strip() or len(content.encode('utf-8'))>6144: raise ValueError('Memory content must be at most 6 KiB')
+    tags=[] if tags is None else tags
+    if not isinstance(tags,list) or len(tags)>20 or any(not isinstance(t,str) or len(t)>50 for t in tags): raise ValueError('Invalid memory tags')
+    if 'data:image/' in content.lower() or re.search(r'[A-Za-z0-9+/]{1024,}={0,2}',content): raise ValueError('Store summaries, not binary exports')
+    if memory is not None and not isinstance(memory,dict): raise ValueError('Invalid structured memory')
+    clean_memory=None if memory is None else {k:redact_memory(v) if isinstance(v,str) else v for k,v in memory.items()}
+    try:
+        result=bridge.save(redact_memory(title.strip()),redact_memory(content.strip()),[redact_memory(t) for t in tags],clean_memory)
+        return {**result,'redacted':redact_memory(content.strip())!=content.strip()}
+    except MemoryUnavailable:
+        if memory is not None: raise
+        return {**_legacy_phone_memory_save(title,content,tags),'engine':'legacy-fallback','warning':'Tencent is unavailable; saved in original legacy memory'}
+
+
+def phone_memory_search(query: str, limit: int=5, filters: dict | None=None) -> dict:
+    from memory_bridge import MemoryUnavailable
+    if not isinstance(query,str) or len(query)>2000 or isinstance(limit,bool) or not isinstance(limit,int) or not 1<=limit<=30: raise ValueError('Invalid memory query/limit')
+    bridge=_memory_bridge()
+    if not bridge.configured:
+        if filters: raise RuntimeError('Tencent memory filters are not configured')
+        return {**_legacy_phone_memory_search(query,limit),'engine':'legacy'}
+    try:
+        result=bridge.search(redact_memory(query),limit,filters)
+        if filters:return result
+        # Transitional read-only merge: outage writes in legacy remain visible.
+        legacy=_legacy_phone_memory_search(query,limit)['notes']
+        current=result.get('notes',[])
+        def duplicate(old):
+            source='legacy:'+('archives' if old.get('archived') else 'notes')+':'+str(old['id'])
+            return any((x.get('memory',{}).get('source_id')==source and (old.get('archived') or
+                       old.get('updated',0)<=x.get('updated',0) or
+                       (x.get('truncated') and old.get('content','').startswith(x.get('content',''))))) or
+                       (x.get('title')==old.get('title') and x.get('memory',{}).get('device')=='android' and
+                        x.get('memory',{}).get('project') in ('','codaki') and old.get('updated',0)<=x.get('updated',0)) or
+                       (x.get('title')==old.get('title') and x.get('content')==old.get('content') and x.get('tags')==old.get('tags')) for x in current)
+        extra=[{**x,'engine':'legacy','memory':{'layer':'L0' if x.get('archived') else 'L1','status':'historical','source':'legacy SQLite; not reconciled'}} for x in legacy if not duplicate(x)]
+        if not extra:return result
+        result={**result,'engine':'tencentdb-original-external+legacy','warning':'Includes legacy evidence; reconcile newer legacy notes explicitly.',
+                'notes':(extra+[{**x,'engine':'tencentdb-original-external'} for x in current])[:limit]}
+        while len(json.dumps(result,ensure_ascii=False).encode())>6144 and len(result['notes'])>1:result['notes'].pop()
+        if result['notes']:
+            note=result['notes'][0]
+            while len(json.dumps(result,ensure_ascii=False).encode())>6144 and note.get('content'):
+                note['content']=note['content'][:-64];note['truncated']=True
+        if len(json.dumps(result,ensure_ascii=False).encode())>6144:raise ValueError('Memory metadata exceeds response budget')
+        return result
+    except MemoryUnavailable:
+        if filters: raise
+        return {**_legacy_phone_memory_search(query,limit),'engine':'legacy-fallback','warning':'Tencent unavailable; searched original legacy memory'}
+
+
+def phone_memory_read(record_id: str) -> dict:
+    return _memory_bridge().read(record_id)
+
+
+def phone_memory_health() -> dict:
+    bridge=_memory_bridge()
+    if not bridge.configured: return {'engine':'legacy','tencent_configured':False}
+    result=bridge.health()
+    try:
+        from project_graph import ProjectGraph
+        G,manifest,changed=ProjectGraph()._load()
+        result['graph']={'engine':'graphify-original','nodes':len(G),'edges':G.number_of_edges(),'stale':bool(changed),'revision':manifest.get('revision')}
+    except Exception as exc: result['graph']={'state':'unavailable','reason':type(exc).__name__}
+    return result
+
+
+def project_graph_query(question: str) -> dict:
+    from project_graph import ProjectGraph
+    return ProjectGraph().query(question)
+
+
+def project_graph_node(label: str) -> dict:
+    from project_graph import ProjectGraph
+    return ProjectGraph().node(label)
+
+
+def project_graph_path(source: str, target: str) -> dict:
+    from project_graph import ProjectGraph
+    return ProjectGraph().path(source,target)
 
 
 def tool_definitions() -> list[dict]:
@@ -571,6 +665,7 @@ def operational_memory_context(tool: str, arguments: dict) -> dict:
                     'title': redact_memory(note['title'])[:160],
                     'content': redact_memory(note['content'])[:1000],
                     'updated': note['updated'], 'archived': note['archived'],
+                    'memory': note.get('memory',{'status':'historical'}),
                 })
                 if len(context['notes']) == 3:
                     return context
