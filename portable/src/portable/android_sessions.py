@@ -54,7 +54,7 @@ class AndroidSessions(WindowsSessions):
         owner=self.busy_sessions.get(sid)
         if owner is not None and owner!=threading.get_ident():
             raise UseError('Session has an active batch; inspect its original result','RESOURCE_CONFLICT')
-        if op=='launch':
+        if op in ('launch','file_open'):
             self.expire()
             sid=args.get('session_id');app=args.get('app_id')
             if sid not in self.sessions:raise UseError('Missing or expired session','SESSION_EXPIRED')

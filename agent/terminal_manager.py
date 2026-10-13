@@ -17,12 +17,18 @@ import threading
 import time
 
 def android_backend(mode):
-    if mode not in ('system','root','termux'):raise ValueError('Unknown shell mode')
+    if mode not in ('app','system','root','termux'):raise ValueError('Unknown shell mode')
     if not Path('/system/bin/sh').is_file():raise RuntimeError('Android backend unavailable')
     env={'PATH':'/system/bin:/system/xbin','TERM':'xterm-256color','LANG':'C.UTF-8','HOME':'/data/local/tmp','TMPDIR':'/data/local/tmp'}
-    uid=2000 if mode=='system' else 0
+    env.update({key:value for key,value in os.environ.items() if key in ('ANDROID_ROOT','ANDROID_DATA','ANDROID_RUNTIME_ROOT','ANDROID_ART_ROOT','ANDROID_TZDATA_ROOT','ANDROID_I18N_ROOT','BOOTCLASSPATH','DEX2OATBOOTCLASSPATH','SYSTEMSERVERCLASSPATH')})
+    own_uid=os.geteuid()
+    if mode!='app' and own_uid!=0:raise PermissionError('Selected shell requires explicitly selected root mode')
+    uid=own_uid if mode=='app' else 2000 if mode=='system' else 0
+    if mode=='app':env.update(HOME=os.environ.get('RELAYKITE_BASE',os.environ.get('HOME','/data/local/tmp')),TMPDIR=os.environ.get('TMPDIR','/data/local/tmp'))
     shell='/system/bin/sh'
     if mode=='termux':
+        from runtime_paths import MODE
+        if MODE!='root-termux':raise PermissionError('Termux backend requires root+Termux installation mode')
         prefix=Path('/data/data/com.termux/files/usr')
         if not (prefix/'bin/bash').is_file():raise RuntimeError('Termux backend unavailable')
         uid=Path('/data/data/com.termux').stat().st_uid
@@ -70,9 +76,10 @@ class TerminalManager:
         self.db.execute("UPDATE terminal_sessions SET status='uncertain' WHERE status IN ('starting','running')")
         self.db.execute("UPDATE terminal_inputs SET status='uncertain' WHERE status='started'");self.db.commit()
 
-    def open(self,request_id,*,mode='system',cwd='/data/local/tmp',command=None,timeout_seconds=1800):
+    def open(self,request_id,*,mode='system',cwd=None,command=None,timeout_seconds=1800):
         if not isinstance(request_id,str) or not re.fullmatch('[A-Za-z0-9_-]{8,100}',request_id):raise ValueError('Stable request ID required')
-        if mode not in ('system','root','termux'):raise ValueError('Unknown shell mode')
+        if mode not in ('app','system','root','termux'):raise ValueError('Unknown shell mode')
+        if cwd is None:cwd=os.environ.get('RELAYKITE_BASE',os.environ.get('HOME','/data/local/tmp')) if mode=='app' else '/data/local/tmp'
         if not isinstance(cwd,str) or not Path(cwd).is_absolute() or '\0' in cwd:raise ValueError('Absolute cwd required')
         if command is not None and (not isinstance(command,str) or not command.strip() or len(command)>65536 or '\0' in command):raise ValueError('Invalid command')
         if type(timeout_seconds)!=int or not 1<=timeout_seconds<=3600:raise ValueError('Timeout must be 1..3600')

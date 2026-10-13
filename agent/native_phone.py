@@ -22,7 +22,7 @@ import uuid
 import xml.etree.ElementTree as ET
 
 BASE=Path(__file__).resolve().parent
-SUPPORT_BASE=Path('/data/adb/mini-codex')
+from runtime_paths import BASE as SUPPORT_BASE,identity as runtime_identity
 LOCK=threading.RLock()
 TOTAL_STORAGE_BYTES=5*1024*1024*1024
 AGENT_STORAGE_RESERVE_BYTES=32*1024*1024
@@ -49,7 +49,7 @@ def adb(*args: str, timeout: int=30, binary: bool=False):
                 if len(parts) != 3:
                     raise ValueError('Malformed root command wrapper')
                 command = parts[2]
-            return run_android(command, timeout=timeout, binary=binary)
+            return run_android(command, timeout=timeout, binary=binary,require_root=args[1].startswith('su -c '))
         if args and args[0] == 'exec-out':
             if len(args) == 2 and args[1].startswith('su -c '):
                 parts = shlex.split(args[1])
@@ -67,17 +67,16 @@ def adb(*args: str, timeout: int=30, binary: bool=False):
             return 'Copied locally on Android'
         raise ValueError('Unsupported local Android backend operation')
 
-def run_android(command: str, *, timeout: int=30, binary: bool=False):
-    su = os.environ.get('ANDROID_SU', '/system/bin/su')
+def run_android(command: str, *, timeout: int=30, binary: bool=False,require_root:bool=True):
     is_root = getattr(os, 'geteuid', lambda: -1)() == 0
-    if not is_root and (not Path(su).is_file()):
-        raise RuntimeError('Android Magisk su not found; set ANDROID_SU to its actual path')
+    if require_root and not is_root:
+        raise PermissionError('This operation requires explicitly selected root mode; app mode never requests su')
     full_command = 'export PATH=/system/bin:/system/xbin; ' + command
     environment = os.environ.copy()
     environment.pop('LD_PRELOAD', None)
     environment.pop('LD_LIBRARY_PATH', None)
     try:
-        argv = ['/system/bin/sh', '-c', full_command] if is_root else [su, '-c', full_command]
+        argv = ['/system/bin/sh', '-c', full_command]
         result = subprocess.run(argv, capture_output=True, timeout=timeout, env=environment)
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError('Android root command timed out') from exc
@@ -112,9 +111,10 @@ def phone_status() -> dict:
     """Read connection, model, Android/build version, battery and root availability."""
     state = adb('get-state')
     props = shell('getprop ro.product.model; getprop ro.build.version.release; getprop ro.build.version.incremental', root=False).splitlines()
-    battery = shell('dumpsys battery', root=False)
+    active=runtime_identity()
+    battery = shell('dumpsys battery', root=False) if active['root_active'] else ''
     level = re.search('level:\\s*(\\d+)', battery)
-    result = {'state': state, 'observed_at': time.time(), 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id')}
+    result = {'state': state, 'observed_at': time.time(), 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id',root=active['root_active']),'runtime':active}
     try:
         from support_runtime import get_context
         result['support'] = get_context(SUPPORT_BASE)
@@ -620,8 +620,8 @@ def project_graph_path(source: str, target: str) -> dict:
 def tool_definitions() -> list[dict]:
     from managed_tools import definitions
     existing=json.loads((BASE/'tool-definitions.json').read_text(encoding='utf-8'))
-    names={d['name'] for d in existing}
-    return existing+[d for d in definitions() if d['name'] not in names]
+    managed=definitions();names={d['name'] for d in managed}
+    return [d for d in existing if d['name'] not in names]+managed
 
 
 def validate_schema(value, schema: dict, name: str='arguments') -> None:

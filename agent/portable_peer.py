@@ -10,7 +10,7 @@ import stat
 
 SOCKET = Path('/data/adb/codaki-portable-use/state/portable.sock')
 OPERATIONS = frozenset(('apps','capabilities','diagnostics','session_start','session_extend',
-    'session_stop','observe','launch','action','batch','result','reconcile'))
+    'session_stop','observe','launch','file_open','action','batch','result','reconcile'))
 MAX_REQUEST = 1024*1024
 MAX_RESPONSE = 4*1024*1024
 

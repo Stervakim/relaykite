@@ -20,11 +20,13 @@ def safe_path(path):
 def protect(path):
     path=safe_path(path)
     if os.name=='nt':
-        info=subprocess.run(['whoami','/user','/fo','csv'],capture_output=True,text=True,check=True,creationflags=subprocess.CREATE_NO_WINDOW)
-        sid=re.search(r'S-1-5-[0-9-]+',info.stdout)
+        # whoami emits the Windows console encoding, which need not match
+        # Python UTF-8 mode. The SID itself is ASCII in every locale.
+        info=subprocess.run(['whoami','/user','/fo','csv'],capture_output=True,check=True,creationflags=subprocess.CREATE_NO_WINDOW)
+        sid=re.search(rb'S-1-5-[0-9-]+',info.stdout)
         if not sid:raise RuntimeError('Windows owner identity unavailable')
         suffix=':(OI)(CI)F' if path.is_dir() else ':F'
-        for args in ([str(path),'/reset'],[str(path),'/inheritance:r'],[str(path),'/grant:r','*'+sid.group()+suffix,'*S-1-5-18'+suffix]):
+        for args in ([str(path),'/reset'],[str(path),'/inheritance:r'],[str(path),'/grant:r','*'+sid.group().decode('ascii')+suffix,'*S-1-5-18'+suffix]):
             subprocess.run(['icacls',*args],capture_output=True,check=True,creationflags=subprocess.CREATE_NO_WINDOW)
     else:path.chmod(0o700 if path.is_dir() else 0o600)
 
@@ -52,8 +54,10 @@ class Boundary:
     def __init__(self,engine,path):
         self.engine=engine;self.path=safe_path(path)
         self.db=sqlite3.connect(self.path)
-        self.db.execute('CREATE TABLE IF NOT EXISTS bridge_requests(scope TEXT,public_id TEXT,engine_id TEXT UNIQUE,op TEXT,PRIMARY KEY(scope,public_id))')
-        self.db.execute('CREATE TABLE IF NOT EXISTS bridge_sessions(id TEXT PRIMARY KEY,scope TEXT)');self.db.commit();protect(self.path)
+        try:
+            self.db.execute('CREATE TABLE IF NOT EXISTS bridge_requests(scope TEXT,public_id TEXT,engine_id TEXT UNIQUE,op TEXT,PRIMARY KEY(scope,public_id))')
+            self.db.execute('CREATE TABLE IF NOT EXISTS bridge_sessions(id TEXT PRIMARY KEY,scope TEXT)');self.db.commit();protect(self.path)
+        except Exception:self.db.close();raise
     def close(self):self.db.close()
     def _register(self,scope,public_id,engine_id,op):
         row=self.db.execute('SELECT engine_id,op FROM bridge_requests WHERE scope=? AND public_id=?',(scope,public_id)).fetchone()

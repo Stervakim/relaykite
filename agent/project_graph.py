@@ -8,7 +8,8 @@ if runtime.is_file():sys.path.insert(0,str(runtime))
 from graphify.serve import _read_graph,_query_graph_text,_resolve_single_node,_shortest_path_text
 
 VERSION='0.9.88'
-DEFAULT_DIR=Path('/data/adb/mini-codex/project-graph')
+from runtime_paths import BASE
+DEFAULT_DIR=BASE/'project-graph'
 _cache={}
 
 def _text(value,name):

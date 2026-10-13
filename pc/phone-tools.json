@@ -1023,7 +1023,7 @@
   },
   {
     "name": "phone_use_batch",
-    "description": "Use the owner-bound phone through the existing Portable engine. Execute 1–12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with phone_job_result; never resubmit input to poll.",
+    "description": "Use the owner-bound phone through the existing Portable engine. Execute 1вЂ“12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with phone_job_result; never resubmit input to poll.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1273,6 +1273,52 @@
     }
   },
   {
+    "name": "phone_use_file_open",
+    "description": "Open an owned read-only RelayKite content URI in the selected application on this Android virtual display. Observe afterwards to verify.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "app_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "uri": {
+          "type": "string",
+          "pattern": "^content://org\\.relaykite\\.runtime\\.files/[a-f0-9]{32}\\.[a-z0-9]{1,12}$",
+          "maxLength": 256
+        },
+        "mime_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "session_id",
+        "app_id",
+        "request_id",
+        "uri",
+        "mime_type"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
     "name": "phone_task_start",
     "description": "Start an owner-authorized tool as a durable bounded background task. Reuse request_id; poll status/result. Short calls and independent resources remain responsive.",
     "annotations": {
@@ -1408,6 +1454,7 @@
         "mode": {
           "type": "string",
           "enum": [
+            "app",
             "system",
             "root",
             "termux"
@@ -1599,6 +1646,7 @@
         "mode": {
           "type": "string",
           "enum": [
+            "app",
             "system",
             "root",
             "termux"
@@ -2091,6 +2139,55 @@
       },
       "required": [
         "transfer_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_open",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "app_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "mime_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "request_id",
+        "session_id",
+        "app_id",
+        "path",
+        "mime_type"
       ],
       "additionalProperties": false
     }

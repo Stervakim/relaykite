@@ -83,6 +83,14 @@ class AndroidBackend:
         raw=self.legacy.run('am','start','--display',str(did),'-f','0x18800000','-n',app_id)
         if 'Error:' in raw or 'Exception' in raw:raise UseError('Android refused launch')
         return {'requested':app_id,'display':did,'verify_with_observe':True}
+    def open_file(self,app_id,uri,mime_type):
+        import re
+        if not isinstance(uri,str) or not re.fullmatch(r'content://org\.relaykite\.runtime\.files/[a-f0-9]{32}\.[a-z0-9]{1,12}',uri):raise UseError('Expected an owned scoped file URI')
+        if not isinstance(mime_type,str) or not re.fullmatch('[a-z0-9.+-]+/[a-z0-9.+-]+',mime_type):raise UseError('Invalid MIME type')
+        did=self.verified_display()
+        raw=self.legacy.run('am','start','--display',str(did),'-a','android.intent.action.VIEW','-d',uri,'-t',mime_type,'-f','0x18800000','--grant-read-uri-permission','-n','org.relaykite.runtime/.FileLaunchActivity','--es','target',app_id)
+        if 'Error:' in raw or 'Exception' in raw:raise UseError('Android refused scoped file open')
+        return {'requested':app_id,'display':did,'uri':uri,'mime_type':mime_type,'verify_with_observe':True}
     def request(self,data):
         did=self.verified_display();data=dict(data,display=did)
         packed=json.dumps(data,ensure_ascii=False,separators=(',',':')).encode('utf-8')

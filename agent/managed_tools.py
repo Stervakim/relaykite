@@ -12,15 +12,16 @@ OPERATIONS=('phone_task_start','phone_task_status','phone_task_result','phone_ta
             'phone_terminal_open','phone_terminal_list','phone_terminal_read','phone_terminal_write','phone_terminal_resize','phone_terminal_close',
             'phone_command_start','phone_command_status','phone_command_result','phone_command_terminate',
             'phone_file_stat','phone_file_checksum','phone_file_copy','phone_file_move','phone_file_rename','phone_file_delete',
-            'phone_transfer_start','phone_transfer_status','phone_transfer_chunk','phone_transfer_commit','phone_transfer_abort')
-SOCKET=Path('/data/adb/mini-codex/state/managed.sock')
+            'phone_transfer_start','phone_transfer_status','phone_transfer_chunk','phone_transfer_commit','phone_transfer_abort','phone_file_open')
+from runtime_paths import BASE
+SOCKET=BASE/'state/managed.sock'
 _runtime=None
 
 def definitions():
     string=lambda maximum=4096:{'type':'string','minLength':1,'maxLength':maximum}
     ident={'type':'string','minLength':8,'maxLength':100,'pattern':'^[A-Za-z0-9_-]+$'}
     integer=lambda low,high:{'type':'integer','minimum':low,'maximum':high}
-    mode={'type':'string','enum':['system','root','termux']}
+    mode={'type':'string','enum':['app','system','root','termux']}
     opening={'request_id':ident,'mode':mode,'cwd':string(),'timeout_seconds':integer(1,3600)}
     tid={'terminal_id':string(100)}
     reading={**tid,'cursor':integer(0,2**53-1),'max_bytes':integer(1,65536)}
@@ -52,6 +53,7 @@ def definitions():
       'phone_transfer_chunk':({'transfer_id':string(100),'offset':integer(0,2*1024**3),'base64':string(349528),'sha256':digest},['transfer_id','offset','base64','sha256']),
       'phone_transfer_commit':({'transfer_id':string(100)},['transfer_id']),
       'phone_transfer_abort':({'transfer_id':string(100)},['transfer_id']),
+      'phone_file_open':({'request_id':ident,'session_id':string(100),'app_id':string(512),'path':string(),'mime_type':string(128)},['request_id','session_id','app_id','path','mime_type']),
     })
     descriptions={
       'phone_task_start':'Start an owner-authorized tool as a durable bounded background task. Reuse request_id; poll status/result. Short calls and independent resources remain responsive.',
@@ -89,6 +91,7 @@ class Runtime:
         except Exception:self.scheduler.close();raise
         try:self.files=FileStore(state/'jobs.sqlite3')
         except Exception:self.scheduler.close();self.terminals.close();raise
+        self.share_lock=threading.RLock()
 
     def invoke(self,tool,args):
         import native_phone
@@ -105,7 +108,7 @@ class Runtime:
         if tool in ('phone_task_status','phone_task_result'):return self.scheduler.status(args['task_id'])
         if tool=='phone_task_cancel':return self.scheduler.cancel(args['task_id'])
         if tool in ('phone_terminal_open','phone_command_start'):
-            return self.terminals.open(args['request_id'],mode=args['mode'],cwd=args.get('cwd','/data/local/tmp'),command=args.get('command'),timeout_seconds=args.get('timeout_seconds',1800))
+            return self.terminals.open(args['request_id'],mode=args['mode'],cwd=args.get('cwd'),command=args.get('command'),timeout_seconds=args.get('timeout_seconds',1800))
         if tool=='phone_terminal_list':return {'terminals':self.terminals.list()}
         if tool in ('phone_terminal_read','phone_command_result'):return self.terminals.read(args['terminal_id'],args.get('cursor',0),args.get('max_bytes',65536))
         if tool=='phone_command_status':
@@ -122,10 +125,21 @@ class Runtime:
         if tool=='phone_transfer_chunk':return self.files.write_chunk(args['transfer_id'],args['offset'],args['base64'],args['sha256'])
         if tool=='phone_transfer_commit':return self.files.commit_transfer(args['transfer_id'])
         if tool=='phone_transfer_abort':return self.files.abort_transfer(args['transfer_id'])
+        if tool=='phone_file_open':
+            from file_bridge import FileBridge
+            with self.share_lock:
+                if not hasattr(self,'shares'):self.shares=FileBridge(Path(self.files.db.execute('PRAGMA database_list').fetchone()[2]))
+            shared=self.shares.prepare(args['request_id'],args['path'],args['mime_type'])
+            from portable_peer import call
+            import hashlib
+            receipt=call('file_open',{'session_id':args['session_id'],'app_id':args['app_id'],'uri':shared['uri'],'mime_type':args['mime_type']},'open_'+hashlib.sha256(args['request_id'].encode()).hexdigest()[:48])
+            if receipt.get('error'):raise RuntimeError(receipt['error'])
+            return {**receipt,'file':shared}
         return self.terminals.stop(args['terminal_id'])
 
     def close(self):
         self.scheduler.close();self.terminals.close();self.files.close()
+        if hasattr(self,'shares'):self.shares.close()
 
 def _peer(connection):
     return struct.unpack('3i',connection.getsockopt(socket.SOL_SOCKET,socket.SO_PEERCRED,12))[1]
@@ -141,13 +155,13 @@ def _receive(connection):
 
 class Server:
     def __init__(self,runtime,path=SOCKET):
-        if os.geteuid()!=0:raise PermissionError('Managed IPC requires root')
+        self.uid=os.geteuid()
         self.runtime=runtime;self.path=Path(path);self.stop=threading.Event();self.clients=set();self.lock=threading.RLock();self.slots=threading.BoundedSemaphore(8)
         if any(p.is_symlink() for p in (self.path,*self.path.parents)):raise ValueError('Unsafe managed socket path')
         self.path.parent.mkdir(parents=True,exist_ok=True,mode=0o700)
         if self.path.exists():
             st=self.path.lstat()
-            if not stat.S_ISSOCK(st.st_mode) or st.st_uid!=0:raise ValueError('Unsafe socket')
+            if not stat.S_ISSOCK(st.st_mode) or st.st_uid!=self.uid:raise ValueError('Unsafe socket')
             probe=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
             try:
                 probe.settimeout(.2)
@@ -162,7 +176,7 @@ class Server:
     def _client(self,connection):
         try:
             with connection:
-                if _peer(connection)!=0:raise PermissionError('Root peer required')
+                if _peer(connection)!=self.uid:raise PermissionError('Same-owner peer required')
                 request=_receive(connection)
                 try:out={'result':self.runtime.invoke(request['tool'],request['arguments'])}
                 except Exception as error:out={'error':type(error).__name__,'instruction':'Operation rejected or uncertain. Inspect the original receipt; do not replay.'}
@@ -206,12 +220,12 @@ def stop(server):
 
 def invoke(tool,arguments):
     if _runtime is not None:return _runtime.invoke(tool,arguments)
-    if getattr(os,'geteuid',lambda:-1)()!=0:raise PermissionError('Managed IPC requires root')
+    uid=getattr(os,'geteuid',lambda:-1)()
     info=SOCKET.lstat()
-    if not stat.S_ISSOCK(info.st_mode) or info.st_uid!=0 or info.st_mode&0o077 or any(p.is_symlink() for p in (SOCKET,*SOCKET.parents)):raise ValueError('Unsafe managed socket')
+    if not stat.S_ISSOCK(info.st_mode) or info.st_uid!=uid or info.st_mode&0o077 or any(p.is_symlink() for p in (SOCKET,*SOCKET.parents)):raise ValueError('Unsafe managed socket')
     with socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as connection:
         connection.settimeout(5);connection.connect(str(SOCKET))
-        if _peer(connection)!=0:raise PermissionError('Managed server is not root')
+        if _peer(connection)!=uid:raise PermissionError('Managed server owner mismatch')
         connection.sendall((json.dumps({'tool':tool,'arguments':arguments})+'\n').encode())
         out=_receive(connection)
     if 'error' in out:raise RuntimeError(out['error']+'; inspect the original receipt')

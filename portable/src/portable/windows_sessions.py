@@ -88,7 +88,7 @@ class WindowsSessions(Engine):
         try:
             result=child._run(op,args)
         finally:
-            if op in ('action','launch'):
+            if op in ('action','launch','file_open'):
                 # Physical input or application launch may change the desktop
                 # foreground. Keep independent leases, but require a fresh
                 # observation before the next action in every other window.

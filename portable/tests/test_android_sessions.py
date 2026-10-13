@@ -22,6 +22,7 @@ class Fake:
                 'nodes':[{'node_id':self.target+'/1','window_id':self.target,'text':'Own Button','role':'Button','enabled':True,'visible':True,'bounds':[0,0,30,30],'actions':['click']}]}
     def action(self,a,obs):self.actions.append(copy.deepcopy(a));return {'applied':True,'display':self.target}
     def launch(self,app):return {'requested':app}
+    def open_file(self,app,uri,mime_type):return {'requested':app,'uri':uri,'mime_type':mime_type,'display':self.target}
 
 class AndroidSessionsTests(unittest.TestCase):
     def setUp(self):
@@ -64,6 +65,30 @@ class AndroidSessionsTests(unittest.TestCase):
         self.assertFalse(thread.is_alive());self.assertEqual(result['target'],b['target'])
         self.assertLess(elapsed,.5,'Independent read was held by a wait in another batch')
         self.assertEqual(done[0]['status'],'stopped');self.assertEqual(done[0]['completed'],0)
+    def test_scoped_file_open_is_journaled_and_conflicts_with_other_package_lease(self):
+        a=self.call('session_start');b=self.call('session_start')
+        args={'session_id':a['session_id'],'app_id':'owned.app/Main','uri':'content://org.relaykite.runtime.files/0123456789abcdef0123456789abcdef.txt','mime_type':'text/plain'}
+        first=self.call('file_open',args,'file_open_receipt_1')
+        self.assertEqual(self.call('file_open',args,'file_open_receipt_1'),first)
+        self.assertEqual(first['display'],a['target'])
+        with self.assertRaises(UseError) as conflict:self.call('file_open',{**args,'session_id':b['session_id']})
+        self.assertEqual(conflict.exception.code,'RESOURCE_CONFLICT')
+    def test_scoped_file_open_preserves_read_grant_in_final_intent_flags(self):
+        from portable.android import AndroidBackend
+        class AndroidIntentBoundary:
+            flags=0
+            def run(self,*args):
+                self.argv=args
+                for i,value in enumerate(args):
+                    if value=='--grant-read-uri-permission':self.flags|=1
+                    if value=='-f':self.flags=int(args[i+1],0)
+                return 'Status: ok'
+        backend=AndroidBackend.__new__(AndroidBackend);boundary=AndroidIntentBoundary();backend.legacy=boundary
+        backend.verified_display=lambda:17
+        result=backend.open_file('owned.app/Main','content://org.relaykite.runtime.files/0123456789abcdef0123456789abcdef.txt','text/plain')
+        self.assertEqual(result['display'],17);self.assertEqual(boundary.flags&1,1,'The later -f argument erased the scoped URI grant')
+        self.assertIn('org.relaykite.runtime/.FileLaunchActivity',boundary.argv)
+        self.assertEqual(boundary.argv[-3:],('--es','target','owned.app/Main'))
     def test_independent_expiry_and_capacity(self):
         a=self.call('session_start',{'lease_seconds':30});b=self.call('session_start',{'lease_seconds':90});self.call('session_start')
         with self.assertRaises(UseError):self.call('session_start')

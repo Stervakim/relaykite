@@ -27,7 +27,7 @@ class SupportTests(unittest.TestCase):
                 if command == 'dumpsys battery': return 'level: 32'
                 if command == 'id': return 'uid=0(root)'
                 raise AssertionError('Unexpected device action: '+command)
-            with patch.object(phone,'SUPPORT_BASE',base), patch.object(phone,'shell',shell):
+            with patch.object(phone,'SUPPORT_BASE',base), patch.object(phone,'shell',shell),patch.object(phone,'runtime_identity',return_value={'mode':'root','root_active':True}):
                 result = phone.phone_status()
             self.assertEqual(result['battery_percent'],32)
             self.assertEqual(result['root_identity'],'uid=0(root)')

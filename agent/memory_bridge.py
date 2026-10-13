@@ -5,7 +5,8 @@ from pathlib import Path
 
 CAP=5*1024**3
 ENGINE='tencentdb-original-external'
-DEFAULT_CONFIG=Path('/data/adb/mini-codex/memory-service.json')
+from runtime_paths import BASE
+DEFAULT_CONFIG=BASE/'memory-service.json'
 class MemoryUnavailable(RuntimeError):pass
 
 def allocated_bytes(path:Path)->int:

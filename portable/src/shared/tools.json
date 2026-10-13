@@ -598,7 +598,7 @@
   },
   {
     "name": "use_batch",
-    "description": "Execute 1–12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with use_job_result; never resubmit input to poll.",
+    "description": "Execute 1вЂ“12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with use_job_result; never resubmit input to poll.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -767,6 +767,57 @@
         "session_id",
         "observation_id",
         "steps"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_file_open",
+    "description": "Open an owned read-only RelayKite content URI in the selected application on this Android virtual display. Observe afterwards to verify.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "app_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "uri": {
+          "type": "string",
+          "pattern": "^content://org\\.relaykite\\.runtime\\.files/[a-f0-9]{32}\\.[a-z0-9]{1,12}$",
+          "maxLength": 256
+        },
+        "mime_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "session_id",
+        "app_id",
+        "device_id",
+        "request_id",
+        "uri",
+        "mime_type"
       ],
       "additionalProperties": false
     },

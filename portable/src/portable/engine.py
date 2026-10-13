@@ -15,6 +15,7 @@ FIELDS={
  'session_start':{'lease_seconds','target'},'session_extend':{'session_id','lease_seconds'},
  'session_stop':{'session_id'},'observe':{'session_id','screenshot'},
  'launch':{'session_id','app_id'},'action':{'session_id','observation_id','action'},
+ 'file_open':{'session_id','app_id','uri','mime_type'},
  'batch':{'session_id','observation_id','steps','timeout_ms'},
  'result':{'request_id'},'reconcile':{'request_id','outcome','evidence'}}
 SELECTOR_FIELDS={'node_id','resource_id','text','description','role','parent_id','window_id','occurrence'}
@@ -294,10 +295,15 @@ class Engine:
             result=self.backend.stop();self.session=None;self.observation=None;return result
         if op=='session_extend':
             n=self.lease(args);self.backend.extend(n);self.session['expires_at']=self.clock()+n;return dict(self.session)
-        if op=='launch':
+        if op in ('launch','file_open'):
             app=args.get('app_id')
             if app not in {a['app_id'] for a in self.backend.apps()}:raise UseError('App must be returned by apps')
-            self.observation=None;return self.backend.launch(app)
+            self.observation=None
+            if op=='file_open':
+                method=getattr(self.backend,'open_file',None)
+                if method is None:raise UseError('Scoped file opening is unavailable on this backend','UNSUPPORTED')
+                return method(app,args.get('uri'),args.get('mime_type'))
+            return self.backend.launch(app)
         if op=='observe':
             if type(args.get('screenshot',False))!=bool:raise UseError('screenshot must be boolean')
             data=self.backend.snapshot(screenshot=args.get('screenshot',False))
