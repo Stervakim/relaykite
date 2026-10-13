@@ -32,6 +32,9 @@ _RECOVERED_MEMORY_DATABASES=set()
 from portable_tools import OPERATIONS as PORTABLE_OPERATIONS,wrapper as portable_wrapper
 for _portable_operation in PORTABLE_OPERATIONS:
     globals()['phone_use_'+_portable_operation]=portable_wrapper(_portable_operation)
+from managed_tools import OPERATIONS as MANAGED_OPERATIONS, wrapper as managed_wrapper
+for _managed_operation in MANAGED_OPERATIONS:
+    globals()[_managed_operation]=managed_wrapper(_managed_operation)
 
 
 def adb(*args: str, timeout: int=30, binary: bool=False):
@@ -236,7 +239,9 @@ def root_shell(command: str, timeout_seconds: int=30) -> dict:
         raise ValueError('Command is empty or contains a null byte')
     if not 1 <= timeout_seconds <= 120:
         raise ValueError('timeout_seconds must be 1..120')
-    result = shell(command, timeout=timeout_seconds)
+    # Shell jobs run in their own process; a long command must not hold the
+    # UI inspector/input lock and delay independent reads or PTYs.
+    result = run_android(command, timeout=timeout_seconds)
     return {'output': result[:60000], 'truncated': len(result) > 60000}
 
 def phone_list_files(directory: str, include_hidden: bool=False) -> dict:
@@ -613,7 +618,10 @@ def project_graph_path(source: str, target: str) -> dict:
 
 
 def tool_definitions() -> list[dict]:
-    return json.loads((BASE/'tool-definitions.json').read_text(encoding='utf-8'))
+    from managed_tools import definitions
+    existing=json.loads((BASE/'tool-definitions.json').read_text(encoding='utf-8'))
+    names={d['name'] for d in existing}
+    return existing+[d for d in definitions() if d['name'] not in names]
 
 
 def validate_schema(value, schema: dict, name: str='arguments') -> None:
@@ -710,7 +718,7 @@ def dispatch(tool: str, arguments: dict) -> dict:
         validate_schema(arguments,allowed[tool]['inputSchema'])
         function=globals()[tool]
         inspect.signature(function).bind(**arguments)
-        context = None if tool.startswith('phone_memory_') else operational_memory_context(tool, arguments)
+        context = None if tool.startswith('phone_memory_') or tool in MANAGED_OPERATIONS else operational_memory_context(tool, arguments)
         result=function(**arguments)
         if tool.startswith('phone_use_'):return result
         if context is not None:
