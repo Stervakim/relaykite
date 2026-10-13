@@ -31,6 +31,8 @@ async function fixture() {
   const context = { env: { DB: db }, user: { userId: "phone-owner", email: "phone@example.com" }, pinned: "phone-owner", phoneCalls: [] };
   const key = "pc_test_"+randomUUID().replaceAll("-", ""); globalThis[key]=context;
   let source = await readFile(new URL("../lib/pc-relay.ts", import.meta.url), "utf8");
+  const portable = JSON.parse(await readFile(new URL('../lib/pc-portable-tools.json',import.meta.url),'utf8'));
+  source=source.replace('import portableDefinitions from "./pc-portable-tools.json";',`const portableDefinitions=${JSON.stringify(portable)};`);
   source = source.replace('import { env } from "cloudflare:workers";', `const ctx = globalThis[${JSON.stringify(key)}]; const env = ctx.env;`)
     .replace('import { getChatGPTUser } from "../app/chatgpt-auth";', 'const getChatGPTUser = async () => ctx.user;')
     .replace('import { ownerId, callTool, now, json, validAgent } from "./phone-relay";', `const ownerId = async () => ctx.user?.userId === ctx.pinned ? ctx.pinned : null;
@@ -130,4 +132,31 @@ test('no fixed connection-count limit and no legacy phone owner replacement',asy
     await assert.rejects(f.invoke('mini_pc_invite',{email:'pc@example.com'}));
     assert.equal(f.context.pinned,'phone-owner');
   } finally {f.close();}
+});
+
+test('Portable jobs preserve native MCP images and original engine state',async()=>{
+ const f=await fixture();try{
+  const link=await f.pair();await f.bridge.api(f.request(link.token),{action:'next'});
+  const args={connection_id:link.id,tool:'pc_use_observe',arguments:{session_id:'owned',screenshot:true,request_id:'portable_observe01'},request_id:'cloud_portable01'};
+  const job=await f.invoke('mini_pc_call',args);
+  const next=await(await f.bridge.api(f.request(link.token),{action:'next'})).json();assert.equal(next.job.id,job.job_id);
+  const payload={content:[{type:'text',text:'verified screenshot'},{type:'image',mimeType:'image/png',data:'eA=='}],structuredContent:{session_id:'owned',status:'observed'},isError:false};
+  await f.bridge.api(f.request(link.token),{action:'result',job_id:job.job_id,status:'completed',result:payload});
+  const receipt=await f.bridge.callBridge('mini_pc_result',{connection_id:link.id,job_id:job.job_id});
+  assert.equal(receipt.content[1].type,'image');assert.equal(receipt.structuredContent.status,'observed');assert.equal(receipt.structuredContent.job_status,'completed');
+ }finally{f.close();}
+});
+test('Portable validates before queue and queued PC cancellation cannot stop running input',async()=>{
+ const f=await fixture();try{
+  const link=await f.pair();await f.bridge.api(f.request(link.token),{action:'next'});
+  const call={connection_id:link.id,tool:'pc_use_batch',request_id:'cloud_batch01',arguments:{session_id:'owned',observation_id:'fresh',request_id:'engine_batch01',steps:[]}};
+  await assert.rejects(f.invoke('mini_pc_call',call));assert.equal(f.sqlite.prepare('SELECT COUNT(*) n FROM pc_jobs').get().n,0);
+  const job=await f.invoke('mini_pc_call',{...call,arguments:{...call.arguments,steps:[{action:{kind:'key',key:'Tab'}}]}});
+  const cancelled=await f.invoke('mini_pc_cancel',{connection_id:link.id,job_id:job.job_id});assert.equal(cancelled.status,'cancelled');assert.equal(cancelled.executed,false);
+  assert.equal((await f.invoke('mini_pc_cancel',{connection_id:link.id,job_id:job.job_id})).status,'cancelled');
+  const running=await f.invoke('mini_pc_call',{...call,tool:'pc_use_capabilities',request_id:'cloud_caps02',arguments:{request_id:'engine_caps02'}});
+  await f.bridge.api(f.request(link.token),{action:'next'});
+  await assert.rejects(f.invoke('mini_pc_cancel',{connection_id:link.id,job_id:running.job_id}));
+  f.context.user={userId:'foreign',email:'other@example.test'};await assert.rejects(f.invoke('mini_pc_cancel',{connection_id:link.id,job_id:job.job_id}));
+ }finally{f.close();}
 });

@@ -41,3 +41,7 @@ GPT может использовать Mini Codex вместе с Computer Use,
 `python mini_codex_pc.py stop` запрещает следующие задания. Уже начатая команда может завершиться; её результат и состояние проверяются отдельно. `start` снимает этот запрет. `revoke --connection ID` отключает связь локально сразу и отзывает её на сервере при доступном интернете. `mini_disconnect` отзывает связь с серверной стороны. Удаление фонового задания: `./install-background.ps1 -Remove`; оно сохраняет конфигурацию и журнал.
 
 Файловые инструменты ограничены выбранными папками, отвергают ссылки/junction и сохраняют резервную копию небольшого файла перед перезаписью. Разрешение `terminal` предоставляет доступ с правами Windows-пользователя: папки файловых инструментов не являются sandbox PowerShell. `codex` разрешает делегирование задач Codex с его собственными политиками. Новые сопряжения по умолчанию дают только статус.
+
+Windows maintenance: Mini PC now exposes twelve pc_use_* operations through the existing Portable engine and owner-local RPC, under the existing terminal grant. Native images and both receipt layers are preserved; queued PC jobs can be cancelled. Requires Portable0.1.3 with --local-ipc-windows. Window leases share a desktop; physical input remains serialized.
+
+For PC UI follow chatgpt/plugin/skills/using-codaki-pc-use/SKILL.md. Keep the existing PC connection, grants, credentials and journal. Do not register a second Portable agent.

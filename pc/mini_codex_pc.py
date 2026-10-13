@@ -17,11 +17,14 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+sys.path.insert(0,str(Path(__file__).resolve().parent))
 
 VERSION = '0.2.4'
 CAPABILITIES = {'terminal', 'files_read', 'files_write', 'codex'}
 OPERATIONS = {'pc_status': None, 'pc_terminal': 'terminal', 'pc_read_file': 'files_read',
               'pc_write_file': 'files_write', 'pc_list_files': 'files_read', 'pc_codex': 'codex'}
+PORTABLE_OPERATIONS=('apps','capabilities','diagnostics','session_start','session_extend','session_stop','observe','launch','action','batch','result','reconcile')
+OPERATIONS.update({'pc_use_'+op:'terminal' for op in PORTABLE_OPERATIONS})
 MAX_OUTPUT = 24000  # UTF-8 JSON expansion remains below the relay result limit.
 
 
@@ -96,7 +99,8 @@ class Relay:
 
     def call(self, action, **args):
         raw = json.dumps({'action': action, **args}, ensure_ascii=False).encode('utf-8')
-        if len(raw) > 256000: raise ValueError('Request too large')
+        limit=4*1024*1024+8192 if action=='result' else 256000
+        if len(raw) > limit: raise ValueError('Request too large')
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json'}
         if self.token: headers['Authorization'] = 'Bearer '+self.token
         if self.authorization: headers['OAI-Sites-Authorization'] = self.authorization
@@ -159,15 +163,19 @@ def allowed_path(value, config, base, *, file_target=True):
     return path
 
 
-def execute(tool, args, config, base):
+def execute(tool, args, config, base, scope=None):
     if tool not in OPERATIONS: raise ValueError('Unknown PC operation')
     cap = OPERATIONS[tool]
     if cap and cap not in config.get('capabilities', []): raise PermissionError('Capability disabled locally')
     if not isinstance(args, dict): raise ValueError('Arguments object required')
+    if tool.startswith('pc_use_'):
+        from portable_client import invoke
+        return invoke(tool.removeprefix('pc_use_'),args,scope)
     if tool == 'pc_status':
+        from portable_client import status as portable_status
         return {'version': VERSION, 'platform': sys.platform, 'capabilities': config.get('capabilities', []),
                 'roots': config.get('roots', []), 'powershell': bool(shutil.which('pwsh') or shutil.which('powershell')),
-                'codex': bool(config.get('codex_argv')),
+                'codex': bool(config.get('codex_argv')), 'portable_use':portable_status(config.get('capabilities',[])),
                 'plugin_integration': {'mode': 'client_tools', 'instructions': 'GPT may combine Mini Codex with available Computer Use, Sites and other plugins. Those tools need their own permissions and must target this exact PC. This worker does not inherit or enumerate ChatGPT plugin credentials.'}}
     if tool in ('pc_list_files', 'pc_read_file', 'pc_write_file'):
         path = allowed_path(args.get('path'), config, base)
@@ -237,8 +245,9 @@ class Journal:
         self.db.execute("INSERT INTO jobs(id,fingerprint,status,created) VALUES(?,?,'started',?)", (key, fingerprint, time.time()))
         self.db.commit()  # Durable marker must precede every side effect.
         try:
-            value = execute(job.get('tool'), job.get('arguments'), config, base)
-            state = 'uncertain' if value.get('status') == 'uncertain' else 'completed'
+            value = execute(job.get('tool'), job.get('arguments'), config, base, scope=connection)
+            portable=value.get('structuredContent',{}) if str(job.get('tool','')).startswith('pc_use_') else {}
+            state = 'uncertain' if value.get('status') == 'uncertain' or portable.get('status')=='uncertain' or portable.get('original_code')=='UNCERTAIN' or portable.get('code') in ('UNCERTAIN','IPC_FAILED','IPC_DEADLINE') else 'completed'
         except (ValueError, PermissionError) as error:
             state, value = 'completed', {'error': str(error), 'executed': False}
         except Exception:
