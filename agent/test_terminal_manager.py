@@ -3,6 +3,8 @@ import base64
 import importlib.util
 import os
 import shlex
+import json
+import subprocess
 from pathlib import Path
 import sys
 import tempfile
@@ -78,5 +80,25 @@ class TerminalTests(unittest.TestCase):
         self.assertEqual(result['terminal_id'],sid)
         self.assertIn(result['status'],('exited','closed','uncertain'))
         self.assertFalse(self.manager.list()[0]['running'])
+    def test_restart_reaps_only_the_recorded_owned_process_generation(self):
+        self.manager.close()
+        code='''import sys,time,os,json
+from terminal_manager import TerminalManager
+shell="/system/bin/sh" if os.path.exists("/system/bin/sh") else "/bin/sh"
+backend=lambda mode:([shell],{"PATH":"/system/bin:/usr/bin:/bin"},None)
+m=TerminalManager(sys.argv[1],backend=backend)
+out=m.open("crash_process_1",mode="system",cwd="/data/local/tmp" if os.path.exists("/system/bin/sh") else "/tmp",command="sleep 20")
+print(json.dumps(out),flush=True);time.sleep(.2);os._exit(0)
+'''
+        env=dict(os.environ,PYTHONPATH=str(Path(__file__).parent))
+        child=subprocess.run([sys.executable,'-c',code,str(self.path)],capture_output=True,text=True,env=env,timeout=5)
+        self.assertEqual(child.returncode,0,child.stderr)
+        pid=json.loads(child.stdout)['pid']
+        from terminal_manager import TerminalManager,generation
+        before=generation(pid);self.assertIsNotNone(before)
+        self.manager=TerminalManager(self.path,backend=self.factory)
+        stat_path=Path('/proc')/str(pid)/'stat'
+        state=stat_path.read_text().rsplit(')',1)[1].split()[0] if stat_path.exists() else 'gone'
+        self.assertIn(state,('gone','Z'),'Recorded group survived a manager crash')
 
 if __name__=='__main__':unittest.main()

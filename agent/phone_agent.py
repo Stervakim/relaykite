@@ -21,7 +21,7 @@ import urllib.request
 import native_phone
 from network_route import choose_proxy
 
-MAX_JOURNAL=5*1024*1024
+MAX_JOURNAL=16*1024*1024
 MAX_RESULT=4*1024*1024-8192
 RESULT_RETENTION_SECONDS=900
 

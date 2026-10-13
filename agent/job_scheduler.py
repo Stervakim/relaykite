@@ -11,7 +11,7 @@ import threading
 import time
 
 class Scheduler:
-    def __init__(self,path,executor,workers=4,max_pending=32,max_output_bytes=1024*1024):
+    def __init__(self,path,executor,workers=4,max_pending=16,max_output_bytes=1024*1024):
         if type(workers)!=int or not 1<=workers<=8:raise ValueError('workers must be 1..8')
         if type(max_pending)!=int or not 1<=max_pending<=64:raise ValueError('pending limit must be 1..64')
         if type(max_output_bytes)!=int or not 64<=max_output_bytes<=2*1024*1024:raise ValueError('Invalid output limit')
@@ -61,7 +61,7 @@ class Scheduler:
             if pending>=self.max_pending:raise RuntimeError('Job queue full; backpressure')
             # Retain receipts to prevent replay even when callers reconnect
             # years later. Exhaustion refuses new effects rather than deleting IDs.
-            if count>=10000:raise RuntimeError('Receipt capacity reached; no new task was executed')
+            if count>=1000:raise RuntimeError('Receipt capacity reached; no new task was executed')
             now=time.time()
             self.db.execute("INSERT INTO managed_tasks VALUES(?,?,?,?,?,?,'queued',NULL,?)",(ident,digest,operation,raw,json.dumps(resources),now+timeout_seconds,now))
             self.db.commit();self.condition.notify_all()
@@ -85,7 +85,14 @@ class Scheduler:
         raw=json.dumps(result,ensure_ascii=False,separators=(',',':'),allow_nan=False)
         if len(raw.encode())>self.max_output:
             raw=json.dumps({'truncated':True,'output_bytes':len(raw.encode()),'instruction':'Effect finished once. Use bounded output reads; do not repeat.'})
-        self.db.execute('UPDATE managed_tasks SET status=?,result=?,updated=? WHERE id=?',(status,raw,time.time(),ident));self.db.commit()
+        self.db.execute("UPDATE managed_tasks SET status=?,result=?,updated=?,arguments='{}',resources='[]' WHERE id=?",(status,raw,time.time(),ident))
+        rows=self.db.execute("SELECT id,length(CAST(result AS BLOB)) FROM managed_tasks WHERE result IS NOT NULL ORDER BY updated DESC").fetchall()
+        retained=0
+        for old_id,size in rows:
+            retained+=size or 0
+            if retained>1024*1024:
+                self.db.execute('UPDATE managed_tasks SET result=? WHERE id=?',(json.dumps({'truncated':True,'instruction':'Cached output compacted; effect must not be replayed.'}),old_id))
+        self.db.commit()
 
     def _worker(self):
         while True:

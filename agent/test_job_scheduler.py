@@ -76,5 +76,11 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(out['status'],'completed')
         self.assertTrue(out['result']['truncated'])
         self.submit('large_result','x'*300);self.assertEqual(len(self.calls),1)
+    def test_completed_argument_payload_is_discarded_but_receipt_still_prevents_replay(self):
+        self.submit('payload_receipt','private-argument');self.wait('payload_receipt')
+        db=sqlite3.connect(self.path)
+        stored=db.execute("SELECT arguments FROM managed_tasks WHERE id='payload_receipt'").fetchone()[0];db.close()
+        self.assertEqual(stored,'{}')
+        self.submit('payload_receipt','private-argument');self.assertEqual(self.calls,['private-argument'])
 
 if __name__=='__main__':unittest.main()

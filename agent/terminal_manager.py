@@ -47,11 +47,25 @@ class TerminalManager:
         self.instance=(path.parent/'terminal-manager.lock').open('a+b')
         try:fcntl.flock(self.instance.fileno(),fcntl.LOCK_EX|fcntl.LOCK_NB)
         except Exception:self.instance.close();raise RuntimeError('Another PTY manager owns this state') from None
-        self.backend=backend;self.cap=max_output_bytes;self.limit=max_sessions;self.lock=threading.RLock();self.active={};self.closed=False
+        self.backend=backend;self.cap=min(max_output_bytes,128*1024);self.limit=max_sessions;self.lock=threading.RLock();self.active={};self.closed=False
         self.db=sqlite3.connect(path,check_same_thread=False,timeout=10);os.chmod(path,0o600)
         self.db.execute('PRAGMA synchronous=FULL')
         self.db.execute('CREATE TABLE IF NOT EXISTS terminal_sessions (id TEXT PRIMARY KEY,request_id TEXT UNIQUE,fingerprint TEXT,status TEXT,pid INTEGER,generation INTEGER,output BLOB,total INTEGER,exit_code INTEGER)')
         self.db.execute('CREATE TABLE IF NOT EXISTS terminal_inputs (id TEXT PRIMARY KEY,terminal TEXT,fingerprint TEXT,status TEXT,written INTEGER)')
+        for pid,born in self.db.execute("SELECT pid,generation FROM terminal_sessions WHERE status='running'").fetchall():
+            if pid is None or born is None or generation(pid)!=born:continue
+            try:
+                if os.getpgid(pid)!=pid:continue
+                os.killpg(pid,signal.SIGTERM)
+                until=time.monotonic()+2
+                while generation(pid)==born and time.monotonic()<until:
+                    state=(Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[0]
+                    if state=='Z':break
+                    time.sleep(.05)
+                if generation(pid)==born:
+                    state=(Path('/proc')/str(pid)/'stat').read_text().rsplit(')',1)[1].split()[0]
+                    if state!='Z' and os.getpgid(pid)==pid:os.killpg(pid,signal.SIGKILL)
+            except ProcessLookupError:pass
         # Preserve old receipts and never reopen a command after restart.
         self.db.execute("UPDATE terminal_sessions SET status='uncertain' WHERE status IN ('starting','running')")
         self.db.execute("UPDATE terminal_inputs SET status='uncertain' WHERE status='started'");self.db.commit()
@@ -71,7 +85,7 @@ class TerminalManager:
                 return self._info(sid)
             if self.closed:raise RuntimeError('Terminal manager is closed')
             if len(self.active)>=self.limit:raise RuntimeError('Terminal capacity reached')
-            if self.db.execute('SELECT count(*) FROM terminal_sessions').fetchone()[0]>=10000:raise RuntimeError('Receipt capacity reached')
+            if self.db.execute('SELECT count(*) FROM terminal_sessions').fetchone()[0]>=1000:raise RuntimeError('Receipt capacity reached')
             argv,env,uid=self.backend(mode)
             if command is None:argv=argv+['-i']
             else:argv=argv+['-c',command+'\nrelaykite_exit=$?; wait; exit "$relaykite_exit"']
@@ -107,6 +121,11 @@ class TerminalManager:
         with self.lock:
             raw,total=self.db.execute('SELECT output,total FROM terminal_sessions WHERE id=?',(sid,)).fetchone()
             self.db.execute('UPDATE terminal_sessions SET output=?,total=? WHERE id=?',((raw+data)[-self.cap:],total+len(data),sid));self.db.commit()
+            retained=0
+            for old_sid,size in self.db.execute('SELECT id,length(output) FROM terminal_sessions ORDER BY rowid DESC').fetchall():
+                retained+=size or 0
+                if retained>1024*1024:self.db.execute('UPDATE terminal_sessions SET output=? WHERE id=?',(b'',old_sid))
+            self.db.commit()
 
     def _signal(self,item,sig):
         proc=item['process']
@@ -136,6 +155,8 @@ class TerminalManager:
                 state='terminated' if timed_out or item['stopped'] else 'exited'
                 self.db.execute('UPDATE terminal_sessions SET status=?,exit_code=? WHERE id=?',(state,code,sid));self.db.commit()
         except Exception:
+            try:self._signal(item,signal.SIGKILL);proc.wait(timeout=5)
+            except (OSError,RuntimeError,subprocess.TimeoutExpired):pass
             with self.lock:self.db.execute("UPDATE terminal_sessions SET status='uncertain' WHERE id=?",(sid,));self.db.commit()
         finally:
             with self.lock:
@@ -162,6 +183,7 @@ class TerminalManager:
                 return {'request_id':request_id,'status':row[2],'written':row[3]}
             item=self.active.get(sid)
             if item is None or item['process'].poll() is not None:raise ValueError('Terminal is not running')
+            if self.db.execute('SELECT count(*) FROM terminal_inputs').fetchone()[0]>=10000:raise RuntimeError('stdin receipt capacity reached')
             self.db.execute("INSERT INTO terminal_inputs VALUES(?,?,?,'started',0)",(request_id,sid,fingerprint));self.db.commit()
             count=0;status='completed'
             try:
