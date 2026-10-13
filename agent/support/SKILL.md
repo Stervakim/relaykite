@@ -1,9 +1,9 @@
 ---
 name: mini-codex-support
-description: Use when managing the owner's Android through Codaki Mini Codex, diagnosing phone-agent or app failures, locating installed components and files, or repeating a device maintenance task.
+description: Use when managing the owner's Android through RelayKite, diagnosing phone-agent or app failures, locating installed components and files, or repeating a device maintenance task.
 ---
 
-# Поддержка Codaki Mini Codex и телефона
+# Поддержка RelayKite и телефона
 
 Этот навык помогает работать с устройством через телефонный агент. Модель принимает решения в чате; Python-агент исполняет инструменты на Android без включённого ПК.
 
@@ -35,6 +35,6 @@ description: Use when managing the owner's Android through Codaki Mini Codex, di
 
 ## Проверка связи
 
-Если Codaki Mini Codex отвечает нестабильно, открой справочник служб: найди его журнал, Python и зависимости сети. Сначала проверь процессы и краткую очищенную диагностику. Перезапуск сети или самого агента может оборвать канал; подготовь восстановление до такого изменения.
+Если RelayKite отвечает нестабильно, открой справочник служб: найди его журнал, Python и зависимости сети. Сначала проверь процессы и краткую очищенную диагностику. Перезапуск сети или самого агента может оборвать канал; подготовь восстановление до такого изменения.
 
 После работы сообщи пользователю, что изменено, чем проверено и что осталось неизвестным. Существующее разрешение пользователя на задачу сохраняется; навык не требует повторных подтверждений для обычных действий внутри неё.

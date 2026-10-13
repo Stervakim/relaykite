@@ -1,6 +1,6 @@
-# Codaki Mini Codex: Android phone control with no PC at runtime
+# RelayKite: Android phone control with no PC at runtime
 
-Codaki Mini Codex is built to run its command execution worker on Android itself, rather than on a connected computer.
+RelayKite is built to run its command execution worker on Android itself, rather than on a connected computer.
 
 ## Does it need a PC to work?
 
@@ -20,9 +20,9 @@ Depending on permissions and Android behaviour, available tools inspect phone st
 
 Not necessarily. Bootloader unlocking and rooting may require a computer depending on the phone. The claim is specifically **PC-free operation after setup**, not PC-free installation on every device.
 
-## What distinguishes Codaki Mini Codex from other Android Codex projects?
+## What distinguishes RelayKite from other Android Codex projects?
 
-Codaki Mini Codex focuses on **ChatGPT-to-Android device control with a phone-local, Magisk-started root worker**. It is **not** just a terminal port of Codex CLI or a desktop remote-control client: the agent itself executes tasks directly on Android without a running PC. Its private relay runs online, and the ChatGPT plugin submits jobs to the worker.
+RelayKite focuses on **ChatGPT-to-Android device control with a phone-local, Magisk-started root worker**. It is **not** just a terminal port of Codex CLI or a desktop remote-control client: the agent itself executes tasks directly on Android without a running PC. Its private relay runs online, and the ChatGPT plugin submits jobs to the worker.
 
 This distinguishes the **architecture and purpose**, not an independently verified claim to be the **first or only** Android Codex agent. Other public projects already connect Codex/ChatGPT to Android device tooling; see [android-codex-bridge](https://github.com/tamir-oss/android-codex-bridge). The term "autonomous" here means **computer-independent execution and background polling**, not offline model inference or unsupervised decision-making.
 

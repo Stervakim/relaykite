@@ -1,4 +1,4 @@
-# Codaki Mini Codex — телефон: ChatGPT card
+# RelayKite — телефон: ChatGPT card
 
 This portable plugin package contains a manifest, icon, setup skill and phone workflow. The public card has an empty App mapping. Importing it adds the workflow; it does not connect a phone or grant access to the author's server. After setup, the existing server pins the authenticated ChatGPT owner and the phone uses its individual agent token.
 
@@ -18,7 +18,7 @@ The output is in ignored `.private/chatgpt/`. A registered App ID begins with `a
 
 Для карточки с подключёнными инструментами выполните команду выше с App ID своего приватного сервера. ID позволяет карточке ссылаться на App, но не привязывает телефон. Персональный архив сохраняется в `.private/chatgpt/`; не публикуйте его. Возможность импорта ZIP и подключения зависит от аккаунта и клиента ChatGPT.
 
-Source: https://github.com/kalabuxova1-hash/codaki-mini-codex
+Source: https://github.com/kalabuxova1-hash/relaykite
 Format: https://developers.openai.com/plugins/build/plugins
 
 ## Update from a new file / Обновление по новому файлу

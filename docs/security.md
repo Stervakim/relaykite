@@ -2,7 +2,7 @@
 
 English | [Русский](security.ru.md)
 
-Codaki Mini Codex executes the owner's Android commands through a separate agent in Termux. This is a third-party project, not a built-in ChatGPT app feature. You trust the agent and its control channel: a root command can read, change and delete any phone data it can access.
+RelayKite executes the owner's Android commands through a separate agent in Termux. This is a third-party project, not a built-in ChatGPT app feature. You trust the agent and its control channel: a root command can read, change and delete any phone data it can access.
 
 Every user must have **their own private relay, random credentials and personal Site plugin**. The public GitHub repository contains sources and templates. It does not connect other people's devices to the author's server or distribute shared credentials. Do not publish a working `config.json`, personal deployment URL, logs, memory databases or command results.
 

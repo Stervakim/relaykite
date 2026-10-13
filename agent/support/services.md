@@ -1,4 +1,4 @@
-# Codaki Mini Codex 0.2.2: service reference
+# RelayKite 0.2.2: service reference
 
 The release worker executes authorized tools on Android. The model in the chat makes decisions; the phone has no independent background AI model.
 
@@ -16,7 +16,7 @@ The release worker executes authorized tools on Android. The model in the chat m
 
 Start with `phone_status` and search relevant existing memory. A passport records installation metadata, not proof that a service is running. Recheck affected paths, processes and module enable markers before changing them. Refresh using the command returned by `support.refresh_command` after component changes or when stale.
 
-Network dependencies differ between owners. Check the owner's verified configuration and current routes without exporting proxy URLs or credentials. Other Android control plugins may operate a different display; do not reuse their UI coordinates in Codaki Mini Codex.
+Network dependencies differ between owners. Check the owner's verified configuration and current routes without exporting proxy URLs or credentials. Other Android control plugins may operate a different display; do not reuse their UI coordinates in RelayKite.
 
 Stopping a network component or the worker may cut this connection. Prepare recovery before changing it. When a job is pending, use `phone_job_result`; verify an uncertain result before repeating an action. Restored connectivity requires a new successful phone operation. If the channel remains unavailable, recovery requires the owner on the phone or an independently configured connection.
 

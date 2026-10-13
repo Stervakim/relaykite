@@ -2,11 +2,11 @@
 
 English | [Русский](install-android.ru.md)
 
-Codaki Mini Codex runs a Python worker on **your rooted phone**. The PC is unnecessary after installation. It sends authenticated outbound HTTPS requests to **your own private relay**; it opens no phone network listener. Connecting that private relay's plugin to ChatGPT remains a separate account setup step. Installing this ZIP does not give the ChatGPT APK a Magisk permission or make the plugin connection automatically.
+RelayKite runs a Python worker on **your rooted phone**. The PC is unnecessary after installation. It sends authenticated outbound HTTPS requests to **your own private relay**; it opens no phone network listener. Connecting that private relay's plugin to ChatGPT remains a separate account setup step. Installing this ZIP does not give the ChatGPT APK a Magisk permission or make the plugin connection automatically.
 
 ## Recommended: give the ZIP to Codex
 
-Download `mini-codex-magisk-0.2.1.zip` from the repository's latest release and attach it to a Codex session with device tools or local computer access. Ask Codex to install it using `INSTALL_WITH_CODEX.md` inside the archive. Codex checks the checksum and prerequisites, installs the module, provisions your own private relay/plugin when needed and verifies the connection. Existing working configuration and memory are retained on upgrade.
+Download `mini-codex-magisk-0.2.4.zip` from the repository's latest release and attach it to a Codex session with device tools or local computer access. Ask Codex to install it using `INSTALL_WITH_CODEX.md` inside the archive. Codex checks the checksum and prerequisites, installs the module, provisions your own private relay/plugin when needed and verifies the connection. Existing working configuration and memory are retained on upgrade.
 
 An existing authorized phone-control channel can perform the phone steps without ADB. For first installation without one, connect your phone to the computer running Codex and approve USB debugging. Codex verifies the selected ADB serial, root and Magisk and uses Magisk's module installer. The ZIP is not an APK. Root/Magisk and Termux Python must already exist; secure first unlock or debugging approval may require you. A phone-only chat without a control channel cannot install the agent by itself.
 
@@ -20,7 +20,7 @@ The detailed instructions below also support manual setup.
 
 ## Install and configure
 
-1. Download `mini-codex-magisk-0.2.1.zip` and verify its SHA-256 against the release's `SHA256SUMS`.
+1. Download `mini-codex-magisk-0.2.4.zip` and verify its SHA-256 against the release's `SHA256SUMS`.
 2. In Magisk, choose **Modules → Install from storage**, select the ZIP and reboot. Install through Codex using Magisk’s supported module installer, or through the Magisk app; not recovery. A fresh installation remains inactive and makes no relay requests until local configuration succeeds.
 3. In Termux, run:
 
@@ -67,13 +67,13 @@ python -m unittest discover -s tests -p 'installer_*.py'
 python scripts/build_release.py
 ```
 
-The build writes `dist/mini-codex-magisk-0.2.1.zip`, `dist/SHA256SUMS`, and redistributable agent files in `dist/agent/`. These commands do not access a phone or include any owner's configuration.
+The build writes `dist/mini-codex-magisk-0.2.4.zip`, `dist/SHA256SUMS`, and redistributable agent files in `dist/agent/`. These commands do not access a phone or include any owner's configuration.
 
 ### Update with GPT
 
 **A new version is out → download the new ZIP → give the file to GPT → ask it to update the plugin.**
 
-> Update this Codaki plugin from the new ZIP. Keep my phone connection, private server, keys, memory and journal. Check the version and checksum, update the existing card, and verify the connection. If this is the full installer, also update the phone components using INSTALL_WITH_CODEX.md.
+> Update this RelayKite plugin from the new ZIP. Keep my phone connection, private server, keys, memory and journal. Check the version and checksum, update the existing card, and verify the connection. If this is the full installer, also update the phone components using INSTALL_WITH_CODEX.md.
 
 The bundled update workflow retains your existing App reference and ChatGPT owner binding. A card-only update leaves the phone runtime unchanged. GPT uses the client's available update/import tools; if the client requires a manual import, it prepares the replacement ZIP and tells you that final step. The file must come from this project's Releases. [Card setup and updates](../chatgpt/README.md).
 
@@ -82,6 +82,6 @@ The bundled update workflow retains your existing App reference and ChatGPT owne
 
 **Вышла новая версия → скачайте новый ZIP → передайте файл GPT → попросите обновить плагин.**
 
-> Обнови этот плагин Codaki из нового ZIP. Сохрани подключение моего телефона, личный сервер, ключи, память и журнал. Проверь версию и контрольную сумму, обнови существующую карточку и проверь связь. Если это полный установщик, также обнови компоненты телефона по INSTALL_WITH_CODEX.md.
+> Обнови этот плагин RelayKite из нового ZIP. Сохрани подключение моего телефона, личный сервер, ключи, память и журнал. Проверь версию и контрольную сумму, обнови существующую карточку и проверь связь. Если это полный установщик, также обнови компоненты телефона по INSTALL_WITH_CODEX.md.
 
 Встроенная инструкция обновления сохраняет существующий App ID и привязку к аккаунту ChatGPT владельца. Обновление одной карточки не меняет компоненты телефона. GPT использует доступные средства обновления/импорта; если клиент требует ручного импорта, он подготовит новый ZIP и укажет этот последний шаг. Берите файл из Releases этого проекта. [Настройка и обновление карточки](../chatgpt/README.md).

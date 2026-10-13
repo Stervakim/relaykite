@@ -52,7 +52,7 @@ After verification, the agent does not need a computer: the phone polls your per
 
 <a name="mcp-configuration-template"></a>
 
-## Codaki AI MCP configuration template
+## RelayKite MCP configuration template
 
 The root [`mcp.json`](../mcp.json) describes the relay's `/mcp` HTTP endpoint using the `servers` configuration format documented by [VS Code](https://code.visualstudio.com/docs/agent-customization/mcp-servers). Its `.example` URL is a placeholder, not a hosted service. The root file is a reference template; it is not automatically loaded as a ChatGPT plugin. Clients use different configuration locations and formats.
 

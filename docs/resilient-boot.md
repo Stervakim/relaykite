@@ -1,4 +1,4 @@
-# Codaki Mini Codex — resilient boot
+# RelayKite — resilient boot
 
 ## Resilient boot 0.2.2 and optional local VLESS proxy
 

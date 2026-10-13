@@ -1,13 +1,13 @@
 ---
 name: using-codaki-memory
-description: Use when completing tasks with Codaki Mini Codex on Android or paired Windows PCs, especially recurring diagnostics, maintenance, commands, file edits, mistakes or tested fixes.
+description: Use when completing tasks with RelayKite on Android or paired Windows PCs, especially recurring diagnostics, maintenance, commands, file edits, mistakes or tested fixes.
 ---
 
-# Codaki persistent operational memory
+# RelayKite persistent operational memory
 
-This skill governs the ChatGPT agent operating Codaki Mini Codex. The memory is a local, retrievable record: it does **not** retrain the model, grant permissions, or replace current evidence. Mini Codex and Portable Use execute commands; ChatGPT plans, reads outcomes, verifies and decides what to remember. Codex CLI is optional and is not required for the workflow.
+This skill governs the ChatGPT agent operating RelayKite. The memory is a local, retrievable record: it does **not** retrain the model, grant permissions, or replace current evidence. Mini Codex and Portable Use execute commands; ChatGPT plans, reads outcomes, verifies and decides what to remember. Codex CLI is optional and is not required for the workflow.
 
-## Before each substantive Codaki task
+## Before each substantive RelayKite task
 
 - Call `phone_memory_search` with distinctive keywords describing the exact requested device, system, error, task and/or file. Search relevant prior troubleshooting outcomes before changing configuration or repeating a failed approach. Skip only when memory tooling is unavailable, the task is trivial, or the lookup would add no value; never block an urgent request on memory.
 - Treat memory as potentially stale, not as verified live device state. Check critical facts with current tools and explicit owner authorization.

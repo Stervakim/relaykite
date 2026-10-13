@@ -1,4 +1,4 @@
-# Codaki Mini Codex: personal phone relay
+# RelayKite: personal phone relay
 
 English | [Русский](README.ru.md)
 

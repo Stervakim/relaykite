@@ -1,10 +1,10 @@
-# Codaki Mini Codex PC — 0.2.4
+# RelayKite PC — 0.2.4
 
 Фоновый агент Windows без окна. GPT → личный HTTPS MCP-сервер → агент → PowerShell → результат GPT. Python 3.14+, PowerShell, интернет и собственный сервер; телефон не нужен. Агент открывает только исходящие HTTPS-запросы и запускается с правами обычного Windows-пользователя.
 
 ## Установка через Codex
 
-Скачайте `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` и `SHA256SUMS` из [релиза](https://github.com/kalabuxova1-hash/codaki-mini-codex/releases/tag/v0.2.4). Карточка есть и внутри установщика под `chatgpt/`.
+Скачайте `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` и `SHA256SUMS` из [релиза](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4). Карточка есть и внутри установщика под `chatgpt/`.
 
 Передайте файлы Codex:
 

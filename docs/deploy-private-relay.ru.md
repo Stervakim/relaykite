@@ -52,7 +52,7 @@ Site должен остаться приватным. Авторизация Ch
 
 <a name="mcp-configuration-template"></a>
 
-## Шаблон подключения к MCP-серверу Codaki ИИ
+## Шаблон подключения к MCP-серверу RelayKite
 
 Файл [`mcp.json`](../mcp.json) в корне описывает HTTP-маршрут `/mcp` в формате `servers`, документированном в [VS Code](https://code.visualstudio.com/docs/agent-customization/mcp-servers). URL с доменом `.example` — пример, а не работающий сервис. Корневой файл служит справочным шаблоном и автоматически не подключает плагин ChatGPT. Разные клиенты используют разные форматы и расположения конфигурации.
 
