@@ -35,6 +35,8 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: relay/package-lock.json
+      - run: node --test agent/memory-runtime/smoke.test.mjs
+        working-directory: .
       - run: npm ci
       - run: node --test tests/*.test.mjs
       - run: npx tsc --noEmit
