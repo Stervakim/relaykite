@@ -6,11 +6,11 @@
 
 ## Проверенные первичные источники
 
-- Исходный код и версия 0.1.0: https://github.com/kalabuxova1-hash/relaykite
-- Публичный релиз: https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.1.0
-- Схема и ограничения работы без ПК: https://github.com/kalabuxova1-hash/relaykite/blob/main/docs/pc-free-android.ru.md
-- Условия тестирования и безопасность: https://github.com/kalabuxova1-hash/relaykite/blob/main/docs/compatibility.ru.md
-- Техническое досье для независимого обозревателя: https://github.com/kalabuxova1-hash/relaykite/blob/main/docs/press-kit.ru.md
+- Исходный код и версия 0.1.0: https://github.com/Stervakim/relaykite
+- Публичный релиз: https://github.com/Stervakim/relaykite/releases/tag/v0.1.0
+- Схема и ограничения работы без ПК: https://github.com/Stervakim/relaykite/blob/main/docs/pc-free-android.ru.md
+- Условия тестирования и безопасность: https://github.com/Stervakim/relaykite/blob/main/docs/compatibility.ru.md
+- Техническое досье для независимого обозревателя: https://github.com/Stervakim/relaykite/blob/main/docs/press-kit.ru.md
 
 Все перечисленные материалы контролируются проектом и поэтому **не доказывают энциклопедическую значимость** сами по себе.
 

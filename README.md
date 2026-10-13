@@ -6,7 +6,7 @@
 
 Control your Android phone and Windows PC through your own private MCP relay.
 
-[Website](https://kalabuxova1-hash.github.io/relaykite/) · [Download v0.2.4](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4) · [Android setup](docs/install-android.md) · [Windows setup](pc/README.en.md) · [Русский](README.ru.md)
+[Website](https://stervakim.github.io/relaykite/) · [Download v0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4) · [Android setup](docs/install-android.md) · [Windows setup](pc/README.en.md) · [Русский](README.ru.md)
 
 RelayKite gives your AI assistant a way to act on the devices you own. Ask it to inspect your phone, open an app, work with files, or run an authorized PowerShell task on your PC. ChatGPT plans the task; a local agent carries it out and returns the result.
 
@@ -55,7 +55,7 @@ The model runs in your active ChatGPT conversation. RelayKite supplies device to
 ## Get started
 
 1. **Check the requirements.** Android needs root/Magisk and Termux already installed; Windows needs Python 3.14+ and PowerShell. Check that your ChatGPT account supports the required personal plugin connection.
-2. **Download the right installer and `SHA256SUMS`** from [release v0.2.4](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4). Check the SHA-256 checksum before installation.
+2. **Download the right installer and `SHA256SUMS`** from [release v0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4). Check the SHA-256 checksum before installation.
 3. **Follow the guide for your device.** Configure your own private relay and credentials, then connect your personal plugin. Importing a public card alone does not connect your device.
 4. **Verify with a small task.** Start with device status, inspect a test app or list a test folder, and check the actual result.
 
@@ -73,15 +73,15 @@ This release includes recovery after Android agent failure, single-instance prot
 
 ## Learn, verify and contribute
 
-- [Control Android from ChatGPT without a running PC](https://kalabuxova1-hash.github.io/relaykite/guides/android-without-pc/) — how the architecture works and how to check it.
+- [Control Android from ChatGPT without a running PC](https://stervakim.github.io/relaykite/guides/android-without-pc/) — how the architecture works and how to check it.
 - [Windows guide](pc/README.en.md) — installation, grants and independent operation.
 - [Android without a PC: FAQ](docs/pc-free-android.md).
 - [Fact sheet for reviewers](docs/press-kit.md) — source-backed claims and a reproducible test plan.
-- [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/kalabuxova1-hash/relaykite/issues/new/choose) · [Brand assets](docs/brand.md) · [English launch copy and headline kit](docs/promotion-kit.md).
+- [Contributing](CONTRIBUTING.md) · [Report a bug](https://github.com/Stervakim/relaykite/issues/new/choose) · [Brand assets](docs/brand.md) · [English launch copy and headline kit](docs/promotion-kit.md).
 
 The documented personal Android configuration is Redmi Turbo 3 / Android 16 / Magisk / Termux. Public bundles have host/mock test coverage; portability to other devices requires testing. Android virtual-display support depends on separately installed components. Do not assume offline AI, lock-screen bypass or identical support on every device.
 
-[Codaki Android Use](https://github.com/kalabuxova1-hash/codaki-android-use) and [Codaki Portable Use](https://github.com/kalabuxova1-hash/codaki-portable-use) are separate companion repositories.
+[Codaki Android Use](https://github.com/Stervakim/codaki-android-use) and [Codaki Portable Use](https://github.com/Stervakim/codaki-portable-use) are separate companion repositories.
 
 ## License and support
 

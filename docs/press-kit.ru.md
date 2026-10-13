@@ -6,9 +6,9 @@
 
 **RelayKite** — открытый независимый проект для управления собственным Android через подключённый личный плагин ChatGPT. Команды выполняются агентом на **самом телефоне**, а не на компьютере. При обычной работе после настройки не требуются постоянно включённый ПК, USB, настольный ADB или scrcpy. Проект **не связан с OpenAI официально**.
 
-Репозиторий: https://github.com/kalabuxova1-hash/relaykite
+Репозиторий: https://github.com/Stervakim/relaykite
 
-Публичный выпуск: https://github.com/kalabuxova1-hash/relaykite/releases/latest
+Публичный выпуск: https://github.com/Stervakim/relaykite/releases/latest
 
 Лицензия: MIT.
 

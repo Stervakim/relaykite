@@ -4,7 +4,7 @@
 
 ## Установка через Codex
 
-Скачайте `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` и `SHA256SUMS` из [релиза](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4). Карточка есть и внутри установщика под `chatgpt/`.
+Скачайте `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` и `SHA256SUMS` из [релиза](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4). Карточка есть и внутри установщика под `chatgpt/`.
 
 Передайте файлы Codex:
 

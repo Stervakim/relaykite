@@ -10,9 +10,9 @@ RelayKite connects ChatGPT to your Android phone and Windows PC through your own
 
 Android uses existing root, Magisk and Termux. After setup, everyday phone control needs no permanently running PC. Windows uses a separate Python/PowerShell worker. Both need internet, a private relay and a supported personal plugin connection.
 
-Project: https://github.com/kalabuxova1-hash/relaykite
+Project: https://github.com/Stervakim/relaykite
 
-Website: https://kalabuxova1-hash.github.io/relaykite/
+Website: https://stervakim.github.io/relaykite/
 
 ## Headlines for explainers and real demos
 

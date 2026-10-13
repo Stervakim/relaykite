@@ -7,7 +7,7 @@ A background Windows worker connects ChatGPT to authorized PowerShell and file o
 ## Install
 
 1. Prepare Python 3.14+ and PowerShell. Verify that your account can use the personal plugin connection.
-2. Download `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` and `SHA256SUMS` from [v0.2.4](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4).
+2. Download `mini-codex-pc-0.2.4.zip`, `codaki-mini-codex-pc-chatgpt-0.2.4.zip` and `SHA256SUMS` from [v0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4).
 3. Give the files to Codex and ask it to verify the checksum and follow the included `INSTALL_WITH_CODEX.md`. The installer archive also contains the plugin card under `chatgpt/`.
 4. Configure your private relay, choose allowed folders and explicitly grant the permissions you need. Verify `pc_status` and a small, authorized PowerShell command.
 

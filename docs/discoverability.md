@@ -6,7 +6,7 @@ RelayKite uses one public name, an English-first README, descriptive installatio
 
 Primary brand query: **RelayKite**. Supporting phrases should appear naturally where relevant: **ChatGPT Android control**, **Android automation without a PC**, **private MCP relay**, **ChatGPT Windows PowerShell agent**, **self-hosted device automation**. Do not repeat keyword lists in every paragraph.
 
-After GitHub Pages is live, add the URL-prefix property `https://kalabuxova1-hash.github.io/relaykite/` to Google Search Console. Verify ownership using Google's exact HTML file or meta tag, then submit `https://kalabuxova1-hash.github.io/relaykite/sitemap.xml` and inspect the homepage and guide URLs. A verification value must come from the owner's Search Console; none is fabricated here. A project-level robots.txt cannot configure the host-root robots.txt on shared GitHub Pages.
+After GitHub Pages is live, add the URL-prefix property `https://stervakim.github.io/relaykite/` to Google Search Console. Verify ownership using Google's exact HTML file or meta tag, then submit `https://stervakim.github.io/relaykite/sitemap.xml` and inspect the homepage and guide URLs. A verification value must come from the owner's Search Console; none is fabricated here. A project-level robots.txt cannot configure the host-root robots.txt on shared GitHub Pages.
 
 Google chooses crawl timing, result titles and rankings. Renaming alone does not guarantee that spelling corrections disappear. Consistent naming, original content and real references from other sites help establish the entity over time.
 

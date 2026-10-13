@@ -16,9 +16,9 @@ Visual identity: graphite `#10171D`, warm paper `#F6F3EB`, signal orange `#F76C3
 
 Assets: [SVG mark](assets/relaykite-mark.svg), [SVG cover](assets/relaykite-cover.svg), [PNG social preview, 1280 × 640](assets/relaykite-cover.png).
 
-Canonical project: https://github.com/kalabuxova1-hash/relaykite
+Canonical project: https://github.com/Stervakim/relaykite
 
-Public guide site: https://kalabuxova1-hash.github.io/relaykite/
+Public guide site: https://stervakim.github.io/relaykite/
 
 Do not claim universal device support, offline AI, a background LLM, first/only status, guaranteed Google rankings or guaranteed Discover distribution. Do not invent reviews, users, benchmark results or device tests.
 

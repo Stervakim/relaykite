@@ -7,7 +7,7 @@
 
 Both need internet, your own relay and a supported personal ChatGPT plugin connection. ChatGPT supplies the AI decisions.
 
-[Start here](https://kalabuxova1-hash.github.io/relaykite/) · [Android setup](https://github.com/kalabuxova1-hash/relaykite/blob/main/docs/install-android.md) · [Windows setup](https://github.com/kalabuxova1-hash/relaykite/blob/main/pc/README.en.md)
+[Start here](https://stervakim.github.io/relaykite/) · [Android setup](https://github.com/Stervakim/relaykite/blob/main/docs/install-android.md) · [Windows setup](https://github.com/Stervakim/relaykite/blob/main/pc/README.en.md)
 
 Previously **Codaki Mini Codex**. Archive filenames and internal IDs keep their legacy names for compatibility. Download the installer for your device and **SHA256SUMS** from the release. This public rename does not update your private installation automatically.
 

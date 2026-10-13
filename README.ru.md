@@ -2,7 +2,7 @@
 
 ![RelayKite — AI tasks. Your devices.](docs/assets/relaykite-cover.png)
 
-[English](README.md) · [Сайт](https://kalabuxova1-hash.github.io/relaykite/) · [Скачать 0.2.4](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4)
+[English](README.md) · [Сайт](https://stervakim.github.io/relaykite/) · [Скачать 0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4)
 
 **RelayKite — открытый проект для управления своим Android и Windows из ChatGPT через личный приватный MCP-сервер.** ИИ планирует задачу в чате, а агент на устройстве выполняет разрешённые действия и возвращает результат.
 
@@ -27,7 +27,7 @@
 
 ## Установка
 
-1. Скачайте подходящий ZIP и `SHA256SUMS` из [релиза 0.2.4](https://github.com/kalabuxova1-hash/relaykite/releases/tag/v0.2.4).
+1. Скачайте подходящий ZIP и `SHA256SUMS` из [релиза 0.2.4](https://github.com/Stervakim/relaykite/releases/tag/v0.2.4).
 2. Проверьте SHA-256 и требования устройства.
 3. Следуйте [инструкции Android](docs/install-android.ru.md) или [инструкции Windows](pc/README.md): настройте собственный приватный сервер и плагин.
 4. Проверьте статус устройства и небольшую безопасную задачу.
