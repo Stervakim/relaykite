@@ -719,7 +719,9 @@ def dispatch(tool: str, arguments: dict) -> dict:
         function=globals()[tool]
         inspect.signature(function).bind(**arguments)
         context = None if tool.startswith('phone_memory_') or tool in MANAGED_OPERATIONS else operational_memory_context(tool, arguments)
-        result=function(**arguments)
+        from path_locks import hold
+        file_paths=[arguments[key] for key in ('path','source','destination') if isinstance(arguments.get(key),str)]
+        with hold(file_paths):result=function(**arguments)
         if tool.startswith('phone_use_'):return result
         if context is not None:
             receipt = remember_write_evidence(tool, arguments, result)

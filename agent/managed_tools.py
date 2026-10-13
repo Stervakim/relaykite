@@ -10,7 +10,9 @@ import threading
 
 OPERATIONS=('phone_task_start','phone_task_status','phone_task_result','phone_task_cancel',
             'phone_terminal_open','phone_terminal_list','phone_terminal_read','phone_terminal_write','phone_terminal_resize','phone_terminal_close',
-            'phone_command_start','phone_command_status','phone_command_result','phone_command_terminate')
+            'phone_command_start','phone_command_status','phone_command_result','phone_command_terminate',
+            'phone_file_stat','phone_file_checksum','phone_file_copy','phone_file_move','phone_file_rename','phone_file_delete',
+            'phone_transfer_start','phone_transfer_status','phone_transfer_chunk','phone_transfer_commit','phone_transfer_abort')
 SOCKET=Path('/data/adb/mini-codex/state/managed.sock')
 _runtime=None
 
@@ -38,6 +40,19 @@ def definitions():
       'phone_command_result':(reading,['terminal_id']),
       'phone_command_terminate':(tid,['terminal_id']),
     }
+    digest={'type':'string','pattern':'^[a-f0-9]{64}$','minLength':64,'maxLength':64}
+    file_args={'request_id':ident,'source':string(),'destination':string(),'overwrite':{'type':'boolean'},'expected_sha256':digest}
+    for name in ('phone_file_copy','phone_file_move','phone_file_rename'):specs[name]=(file_args,['request_id','source','destination'])
+    specs.update({
+      'phone_file_stat':({'path':string()},['path']),
+      'phone_file_checksum':({'path':string()},['path']),
+      'phone_file_delete':({'request_id':ident,'path':string(),'expected_sha256':digest},['request_id','path']),
+      'phone_transfer_start':({'request_id':ident,'destination':string(),'total_bytes':integer(0,2*1024**3),'sha256':digest,'overwrite':{'type':'boolean'}},['request_id','destination','total_bytes','sha256']),
+      'phone_transfer_status':({'transfer_id':string(100)},['transfer_id']),
+      'phone_transfer_chunk':({'transfer_id':string(100),'offset':integer(0,2*1024**3),'base64':string(349528),'sha256':digest},['transfer_id','offset','base64','sha256']),
+      'phone_transfer_commit':({'transfer_id':string(100)},['transfer_id']),
+      'phone_transfer_abort':({'transfer_id':string(100)},['transfer_id']),
+    })
     descriptions={
       'phone_task_start':'Start an owner-authorized tool as a durable bounded background task. Reuse request_id; poll status/result. Short calls and independent resources remain responsive.',
       'phone_task_cancel':'Cancel only a queued managed task. Running effects require supported targeted termination and are never claimed cancelled.',
@@ -45,7 +60,7 @@ def definitions():
       'phone_terminal_write':'Send base64 stdin once using a stable request ID. An uncertain write must be inspected, never replayed under a new ID.',
       'phone_command_start':'Start a shell command in its own PTY/process group, with bounded output and deadline. Read its original terminal_id; do not repeat an uncertain command.',
     }
-    readonly={'phone_task_status','phone_task_result','phone_terminal_list','phone_terminal_read','phone_command_status','phone_command_result'}
+    readonly={'phone_task_status','phone_task_result','phone_terminal_list','phone_terminal_read','phone_command_status','phone_command_result','phone_file_stat','phone_file_checksum','phone_transfer_status'}
     return [{'name':name,'description':descriptions.get(name,'Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.'),
              'annotations':{'readOnlyHint':name in readonly,'destructiveHint':name not in readonly,'idempotentHint':name in readonly,'openWorldHint':False},
              'inputSchema':{'type':'object','properties':properties,'required':required,'additionalProperties':False}}
@@ -67,10 +82,13 @@ class Runtime:
     def __init__(self,state,executor,*,backend=None):
         from job_scheduler import Scheduler
         from terminal_manager import TerminalManager
+        from file_ops import FileStore
         state=Path(state);state.mkdir(parents=True,exist_ok=True,mode=0o700)
         self.scheduler=Scheduler(state/'jobs.sqlite3',executor)
         try:self.terminals=TerminalManager(state/'jobs.sqlite3',**({} if backend is None else {'backend':backend}))
         except Exception:self.scheduler.close();raise
+        try:self.files=FileStore(state/'jobs.sqlite3')
+        except Exception:self.scheduler.close();self.terminals.close();raise
 
     def invoke(self,tool,args):
         import native_phone
@@ -79,7 +97,7 @@ class Runtime:
         native_phone.validate_schema(args,definition['inputSchema'])
         if tool=='phone_task_start':
             requested=args['tool'];arguments=args['arguments']
-            if requested in OPERATIONS or requested.startswith('phone_job_'):raise ValueError('Recursive/control scheduling is not allowed')
+            if requested.startswith(('phone_task_','phone_terminal_','phone_command_','phone_job_')):raise ValueError('Recursive/process-control scheduling is not allowed')
             target=next((d for d in native_phone.tool_definitions() if d['name']==requested),None)
             if target is None:raise ValueError('Unknown owner-authorized tool')
             native_phone.validate_schema(arguments,target['inputSchema'])
@@ -94,10 +112,20 @@ class Runtime:
             with self.terminals.lock:return self.terminals._info(args['terminal_id'])
         if tool=='phone_terminal_write':return self.terminals.write(args['terminal_id'],args['request_id'],args['base64'])
         if tool=='phone_terminal_resize':return self.terminals.resize(args['terminal_id'],args['rows'],args['columns'])
+        if tool=='phone_file_stat':return self.files.stat(args['path'])
+        if tool=='phone_file_checksum':return self.files.checksum(args['path'])
+        if tool in ('phone_file_copy','phone_file_move','phone_file_rename'):
+            return self.files.operate(args['request_id'],tool.removeprefix('phone_file_'),args['source'],args['destination'],overwrite=args.get('overwrite',False),expected_sha256=args.get('expected_sha256'))
+        if tool=='phone_file_delete':return self.files.operate(args['request_id'],'delete',args['path'],expected_sha256=args.get('expected_sha256'))
+        if tool=='phone_transfer_start':return self.files.start_transfer(args['request_id'],args['destination'],args['total_bytes'],args['sha256'],overwrite=args.get('overwrite',False))
+        if tool=='phone_transfer_status':return self.files.transfer_status(args['transfer_id'])
+        if tool=='phone_transfer_chunk':return self.files.write_chunk(args['transfer_id'],args['offset'],args['base64'],args['sha256'])
+        if tool=='phone_transfer_commit':return self.files.commit_transfer(args['transfer_id'])
+        if tool=='phone_transfer_abort':return self.files.abort_transfer(args['transfer_id'])
         return self.terminals.stop(args['terminal_id'])
 
     def close(self):
-        self.scheduler.close();self.terminals.close()
+        self.scheduler.close();self.terminals.close();self.files.close()
 
 def _peer(connection):
     return struct.unpack('3i',connection.getsockopt(socket.SOL_SOCKET,socket.SO_PEERCRED,12))[1]
