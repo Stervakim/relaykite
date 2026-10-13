@@ -5,7 +5,7 @@ import datetime,gzip,hashlib,json,os,re,secrets,shutil,signal,sqlite3,subprocess
 BASE=Path('/data/adb/mini-codex');MOD=Path('/data/adb/modules/mini_codex')
 PREFIX=Path('/data/data/com.termux/files/usr');STAGE=Path('/data/local/tmp/codaki-memory-in')
 SERVICE=PREFIX/'var/lib/codaki-memory';LIB=PREFIX/'lib/codaki-memory'
-FILES=('memory_bridge.py','memory_service.py','project_graph.py','native_phone.py','support_runtime.py','graph-runtime.zip','tool-definitions.json')
+FILES=('memory_bridge.py','memory_service.py','project_graph.py','native_phone.py','phone_agent.py','network_route.py','portable_tools.py','portable_peer.py','support_runtime.py','graph-runtime.zip','tool-definitions.json')
 
 def write_private(path,data,uid=0):
     path.parent.mkdir(parents=True,exist_ok=True)
@@ -39,6 +39,7 @@ def install():
         p=MOD/'agent'/name
         if p.is_file():shutil.copy2(p,backup/'agent'/name)
     shutil.copy2(MOD/'service.sh',backup/'service.sh')
+    shutil.copy2(MOD/'module.prop',backup/'module.prop')
     old=BASE/'memory/notes.sqlite3'
     if old.exists():
         with sqlite3.connect('file:'+str(old)+'?mode=ro',uri=True) as src,sqlite3.connect(backup/'notes.sqlite3') as dst:src.backup(dst)
@@ -107,6 +108,7 @@ def install():
     else:raise RuntimeError('New memory service did not start; existing worker left enabled')
     probe.replace(BASE/'memory-service.json')
     write_private(MOD/'service.sh',(STAGE/'service.sh').read_bytes());os.chmod(MOD/'service.sh',0o755)
+    if (STAGE/'module.prop').is_file():write_private(MOD/'module.prop',(STAGE/'module.prop').read_bytes());os.chmod(MOD/'module.prop',0o644)
     (BASE/'memory-backups/latest').write_text(str(backup))
     # Replace shell supervisors so this update's recovery loop is live now.
     target=str(MOD/'service.sh').encode()

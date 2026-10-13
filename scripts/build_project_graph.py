@@ -15,7 +15,6 @@ def main():
     files=[];sources={}
     for root,prefix in groups:
         for p in sorted(root.rglob('*')):
-            if prefix=='codaki/agent' and p.name=='network_route.py':continue # Public module absent from this installed baseline.
             if not p.is_file() or p.is_symlink() or p.suffix not in EXT:continue
             rel=p.relative_to(root)
             if p.name.startswith('test') or '.test.' in p.name or any(x in ('node_modules','__pycache__','__tests__','.git') for x in rel.parts):continue

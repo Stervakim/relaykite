@@ -5,6 +5,8 @@
 **Mini Codex Android · Миникодекс**
 
 Version0.2.4 adds original Tencent external memory, Graphify code queries and the existing Portable Use IPC bridge. Memory setup is optional and requires Termux Node24; GPT in the active chat supplies summaries. No parallel Android sessions or background LLM are claimed. Runtime provenance and setup: [memory guide](agent/memory-runtime/README.md).
+Maintenance: twelve typed `phone_use_*` tools expose the existing Android Portable engine, with stable request IDs and native MCP screenshots. `phone_job_cancel` cancels only owner-bound queued jobs; running input remains uncancellable. Added Portable session/receipt instructions. Requires an existing Portable engine; this increment does not add parallel Android sessions, Windows Portable IPC or managed terminals.
+
 
 **English** · [Русский](README.ru.md) &nbsp; | &nbsp; **v0.2.4** · [MIT](LICENSE)
 
