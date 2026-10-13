@@ -63,7 +63,7 @@ jobs:
       - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-chatgpt-0.2.4.zip
       - run: python tests/test_release_safety.py --scan dist/mini-codex-pc-0.2.4.zip
       - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-pc-chatgpt-0.2.4.zip
-      - name: Publish verified Codaki Mini Codex 0.2.4 release
+      - name: Publish verified RelayKite 0.2.4 release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -73,8 +73,8 @@ jobs:
             gh release upload v0.2.4 dist/mini-codex-magisk-0.2.4.zip dist/codaki-mini-codex-chatgpt-0.2.4.zip dist/mini-codex-pc-0.2.4.zip dist/codaki-mini-codex-pc-chatgpt-0.2.4.zip dist/SHA256SUMS dist/SOURCE_COMMIT.txt --clobber
             cp CHANGELOG.md dist/release-notes.md
             printf "\nMaintenance assets rebuilt from source commit %s. The original release tag is retained.\n" "$GITHUB_SHA" >> dist/release-notes.md
-            gh release edit v0.2.4 --notes-file dist/release-notes.md
+            gh release edit v0.2.4 --title 'RelayKite 0.2.4 — Let ChatGPT use your devices' --notes-file dist/release-notes.md
           else
             gh release create v0.2.4 dist/mini-codex-magisk-0.2.4.zip dist/codaki-mini-codex-chatgpt-0.2.4.zip dist/mini-codex-pc-0.2.4.zip dist/codaki-mini-codex-pc-chatgpt-0.2.4.zip dist/SHA256SUMS \
-              --target "$GITHUB_SHA" --title 'Codaki Mini Codex 0.2.4' --notes-file CHANGELOG.md
+              --target "$GITHUB_SHA" --title 'RelayKite 0.2.4 — Let ChatGPT use your devices' --notes-file CHANGELOG.md
           fi

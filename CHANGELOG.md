@@ -1,3 +1,18 @@
+# RelayKite 0.2.4 — Let ChatGPT use your devices
+
+**Let ChatGPT tap, swipe and run tasks on your Android phone and Windows PC.** RelayKite connects your conversation to local device agents through your own private HTTPS MCP relay.
+
+- **Android:** app and screen control, files and authorized system tasks. The worker runs on the phone; everyday use after setup needs no permanently running PC. Existing root, Magisk and Termux are required.
+- **Windows:** a separate background worker for authorized PowerShell and file operations. Python 3.14+ and configured permissions are required; no phone is needed.
+
+Both need internet, your own relay and a supported personal ChatGPT plugin connection. ChatGPT supplies the AI decisions.
+
+[Start here](https://kalabuxova1-hash.github.io/relaykite/) · [Android setup](https://github.com/kalabuxova1-hash/relaykite/blob/main/docs/install-android.md) · [Windows setup](https://github.com/kalabuxova1-hash/relaykite/blob/main/pc/README.en.md)
+
+Previously **Codaki Mini Codex**. Archive filenames and internal IDs keep their legacy names for compatibility. Download the installer for your device and **SHA256SUMS** from the release. This public rename does not update your private installation automatically.
+
+---
+
 # Changelog
 
 ## 0.2.4 — Tencent memory and Graphify
