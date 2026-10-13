@@ -1,0 +1,779 @@
+[
+  {
+    "name": "use_apps",
+    "description": "List discoverable applications and their app_id. Launch only a returned app.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_capabilities",
+    "description": "Report platform support; do not assume unsupported actions.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_diagnostics",
+    "description": "Read session and uncertain request state; works while input is blocked.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_session_start",
+    "description": "Start an owned Android display or select a returned Windows window. Does not unlock the physical screen.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "lease_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 1800
+        },
+        "target": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_session_extend",
+    "description": "Extend the current session lease; observation freshness remains separate.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "lease_seconds": {
+          "type": "integer",
+          "minimum": 30,
+          "maximum": 1800
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "session_id",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_session_stop",
+    "description": "Release only this owned session. Windows apps remain open.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "session_id",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_observe",
+    "description": "Read windows, nodes and focus with observation_id. Request screenshots only when needed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "screenshot": {
+          "type": "boolean"
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "session_id",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_launch",
+    "description": "Launch a previously discovered app on the current session.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "app_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "session_id",
+        "app_id",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_action",
+    "description": "Execute one action bound to a fresh observation. Selectors must identify one node; occurrence is zero-based. Text replace accepts empty string; append/insert require a verified native field value. Never replay an uncertain action.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "observation_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "action": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "click",
+                "long_click",
+                "focus",
+                "set_text",
+                "selection",
+                "select",
+                "scroll",
+                "key",
+                "gesture",
+                "secondary",
+                "drag"
+              ]
+            },
+            "selector": {
+              "type": "object",
+              "properties": {
+                "node_id": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "resource_id": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "text": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "description": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "role": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "parent_id": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "window_id": {
+                  "type": "string",
+                  "maxLength": 256
+                },
+                "occurrence": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            },
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            },
+            "start": {
+              "type": "integer"
+            },
+            "end": {
+              "type": "integer"
+            },
+            "duration_ms": {
+              "type": "integer"
+            },
+            "scroll_x": {
+              "type": "integer"
+            },
+            "scroll_y": {
+              "type": "integer"
+            },
+            "click_count": {
+              "type": "integer"
+            },
+            "from_x": {
+              "type": "integer"
+            },
+            "from_y": {
+              "type": "integer"
+            },
+            "to_x": {
+              "type": "integer"
+            },
+            "to_y": {
+              "type": "integer"
+            },
+            "key": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "mode": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "direction": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "button": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "action": {
+              "type": "string",
+              "maxLength": 256
+            },
+            "text": {
+              "type": "string",
+              "maxLength": 65536
+            },
+            "paths": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 5,
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 120,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 2,
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "session_id",
+        "observation_id",
+        "action",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_result",
+    "description": "Read a locally saved request outcome without executing it again.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "target_request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "target_request_id",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_reconcile",
+    "description": "Record an explicitly checked uncertain outcome and evidence; never executes the original action. Do not invent evidence.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "target_request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "not_applied"
+          ]
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "target_request_id",
+        "outcome",
+        "evidence",
+        "device_id",
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "use_devices",
+    "description": "List authorized connected device IDs and platform capabilities.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false
+    }
+  },
+  {
+    "name": "use_job_result",
+    "description": "Read a queued job receipt; do not resubmit the original action.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false
+    }
+  },
+  {
+    "name": "use_cancel",
+    "description": "Cancel only a job that has not been claimed; running actions cannot be cancelled.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "maxLength": 256
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true
+    }
+  },
+  {
+    "name": "use_batch",
+    "description": "Execute 1–12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with use_job_result; never resubmit input to poll.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "observation_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "device_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "steps": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "properties": {
+              "action": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "click",
+                      "long_click",
+                      "focus",
+                      "set_text",
+                      "selection",
+                      "select",
+                      "scroll",
+                      "key"
+                    ]
+                  },
+                  "selector": {
+                    "type": "object",
+                    "properties": {
+                      "resource_id": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "text": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "description": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "role": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "occurrence": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": false
+                  },
+                  "start": {
+                    "type": "integer"
+                  },
+                  "end": {
+                    "type": "integer"
+                  },
+                  "duration_ms": {
+                    "type": "integer"
+                  },
+                  "scroll_x": {
+                    "type": "integer"
+                  },
+                  "scroll_y": {
+                    "type": "integer"
+                  },
+                  "click_count": {
+                    "type": "integer"
+                  },
+                  "key": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "mode": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "direction": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "button": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "action": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 65536
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              "wait_for": {
+                "type": "object",
+                "properties": {
+                  "resource_id": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "text": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "description": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "role": {
+                    "type": "string",
+                    "maxLength": 256
+                  },
+                  "occurrence": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              },
+              "wait_timeout_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5000
+              }
+            },
+            "required": [
+              "action"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30000
+        }
+      },
+      "required": [
+        "device_id",
+        "request_id",
+        "session_id",
+        "observation_id",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  }
+]

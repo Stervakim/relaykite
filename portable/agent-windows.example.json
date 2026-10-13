@@ -1,0 +1,6 @@
+{
+  "device_id": "windows_YOUR_PC",
+  "relay_url": "https://your-private-relay.example.invalid",
+  "agent_token": "REPLACE_WITH_SEPARATELY_PROVISIONED_WINDOWS_DEVICE_TOKEN",
+  "site_access_token": "REPLACE_WITH_SITE_SERVICE_ACCESS_TOKEN"
+}

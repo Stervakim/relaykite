@@ -1,0 +1,6 @@
+id=codaki_portable_use
+name=Codaki Portable Use
+version=0.1.4
+versionCode=1040
+author=Codaki
+description=Independent Android virtual-screen agent. Existing Termux Python required; root-only local IPC by default, private relay optional.
