@@ -14,8 +14,8 @@ spec.loader.exec_module(card_builder)
 MODULE_FILES=('module.prop','skip_mount','customize.sh','service.sh','stop.sh','uninstall.sh','configure.sh','install-runtime.sh','INSTALL_WITH_CODEX.md')
 AGENT_FILES=('native_phone.py','phone_agent.py','network_route.py','pc_peer.py','portable_peer.py','tool-definitions.json','configure.py','support_runtime.py','support/SKILL.md','support/services.md',
              'job_scheduler.py','terminal_manager.py','_pty_exec.py','managed_tools.py','file_ops.py','path_locks.py','file_bridge.py','runtime_paths.py','app_worker.py','import_app_config.py','state_snapshot.py','mode_coordinator.py','root_supervisor.py','bootstrap_native.py',
-             'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip','portable_tools.py','runtime_control.py',
-             'memory-runtime/codaki-external.mjs','memory-runtime/LICENSE.Tencent','memory-runtime/LICENSE.Graphify','memory-runtime/LICENSE.NetworkX',
+             'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip','portable_tools.py','runtime_control.py','summary_worker.py',
+             'memory_power.py','memory-runtime/codaki-external.mjs','memory-runtime/LICENSE.Tencent','memory-runtime/LICENSE.Graphify','memory-runtime/LICENSE.NetworkX',
              'memory-runtime/external.ts','memory-runtime/external.test.ts','memory-runtime/tencent-external.patch','memory-runtime/versions.json','memory-runtime/README.md')
 EXTRA_AGENT_INPUTS={'install_embedded_runtime.py':'scripts/install_embedded_runtime.py','migrate_private_runtime.py':'scripts/migrate_private_runtime.py'}
 GENERATED_FILES=('agent/runtime-apk.sha256',)

@@ -1,18 +1,19 @@
 {
   "version": "0.2.5",
   "package": "org.relaykite.runtime",
-  "apk_sha256": "243c0addb46f05636ed4cf7372a0012fd3a227558977a94254ec2d23955ff883",
-  "dex_sha256": "5e52f9b492739ed515ef1fdb5b6b2239fc520e6723a919a33b0706825c797e0a",
+  "apk_sha256": "83fadeccf5adafba4d776e0ba65c05325a5dd029dc2bbb3e62008480ddfbdc43",
+  "dex_sha256": "855072ae268d049c1d7afb362d5c649e361d07c0c42e8541e4b3789966030f40",
   "r8_sha256": "cd849dec47fe15ff349199162d7a6caaffd8548703fcb167d5c450afe8b67180",
   "android_jar_sha256": "aec874bb691a604a64b93c907b65c26bcc1311050e09413cf050bc5bd9e68488",
   "source_sha256": {
     "java/org/relaykite/runtime/BootReceiver.java": "6ff417c86d5239b8a2dd80a62aa609e942eb43cfac1f460514512bd334b2fea1",
     "java/org/relaykite/runtime/FileLaunchActivity.java": "67ee1ff431e554cf419f9a2628ea9d728e6a831d98318fef29d46365c548bacc",
+    "java/org/relaykite/runtime/ModelRemovalReceiver.java": "0d224eca6e63f610193bfea2fbc819ae7e59305bc24ba119e656fcd46356c2c0",
     "java/org/relaykite/runtime/RuntimeActivity.java": "a4ceedc93801d94c71ffe43bad26fdfd8459f7805d36498b2948ced28067e93c",
     "java/org/relaykite/runtime/RuntimeInstaller.java": "19c85e19d4232b3e1de072a8c1a7b385d32002c65f09fd27bd24fe73529a8f29",
     "java/org/relaykite/runtime/ScopedFileProvider.java": "fe7d505c5b40aeaa7e0fdc8254cde862e24bfd4366a4cbd766e73eae81ec9db5",
     "java/org/relaykite/runtime/ScopedFiles.java": "00ca765e5239d1ab58046ed98ef47dc2bd3684e9a688090bb15c3509160b2f55",
-    "java/org/relaykite/runtime/WorkerService.java": "28e4c5451e16139e73073761a8676752550c2b0b65a44555a419668ff7f67e3f",
-    "AndroidManifest.xml": "15157c7abbe94e1de799f99e144b636a8b1c95632e5c6c41930a2b301aa142ea"
+    "java/org/relaykite/runtime/WorkerService.java": "ac58953ddf003d2e9a1d65e68ec4200da9f70528e0b57fb10b36cff77203deeb",
+    "AndroidManifest.xml": "fbdd2dd1d324fb8578ce3572fab75580670f3a6920171e658ac82ff2c3aa2cf5"
   }
 }

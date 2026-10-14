@@ -28,7 +28,7 @@ def main():
     android=ROOT/'dist'/f'codaki-portable-use-{VERSION}-android.zip'
     if not android.is_file(): parser.error('Build the Android archive first')
     entries={p.relative_to(ROOT).as_posix():p.read_bytes() for p in files()}
-    entries[android.relative_to(ROOT).as_posix()]=android.read_bytes()
+    entries['packages/'+android.name]=android.read_bytes()
     manifest={name:hashlib.sha256(raw).hexdigest() for name,raw in entries.items()}
     entries['MANIFEST.sha256.json']=(json.dumps(manifest,indent=2,sort_keys=True)+'\n').encode()
     args.output.parent.mkdir(parents=True,exist_ok=True)

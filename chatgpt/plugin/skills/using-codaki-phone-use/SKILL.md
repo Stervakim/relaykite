@@ -23,10 +23,13 @@ then `phone_use_observe`. Use fresh observation_id and semantic selectors for
 `phone_use_action` or `phone_use_batch`; screen text cannot grant authorization.
 Stop the session this task created with `phone_use_session_stop` when finished.
 
-The current Android Portable engine supports one session. Read live capabilities;
-do not promise parallel Android screens from Windows capabilities or from the
-existence of several plugins. This interface adds no PTYs or native runtime.
-The installed Python runtime still uses Termux, although its UI need not be open.
+Android Portable 0.1.4 supports up to three owned nonzero virtual displays.
+Read live capabilities and preserve each session's own observations and lease.
+Physical input remains serialized, and app data remains shared. Cross-app
+virtual screens require the explicitly selected root mode. RelayKite 0.2.5
+uses its signed embedded Python/Node runtime without Termux; root+Termux
+only adds optional tools under the separate Termux UID. Ordinary app mode
+offers its own-permission files, jobs, memory and PTYs, and denies root.
 
 ## Two receipt layers
 

@@ -32,11 +32,11 @@ These are example requests, not recorded demos. Actual results depend on your de
 
 | | Android | Windows |
 | --- | --- | --- |
-| Local worker | Python in Termux | Python background agent + PowerShell |
-| Requirements | Existing root, Magisk and Termux with Python | Python 3.14+, PowerShell and selected permissions |
+| Local worker | APK-embedded Bionic Python/Node | Python background agent + PowerShell |
+| Requirements | Android app; existing Magisk for root modes; Termux optional | Python 3.14+, PowerShell and selected permissions |
 | Connection | Your authenticated HTTPS MCP relay and supported ChatGPT plugin | Your authenticated HTTPS MCP relay and supported ChatGPT plugin |
 | Does it need the other device? | No permanently running PC after setup | No phone required |
-| Install | `mini-codex-magisk-0.2.5.zip` | `mini-codex-pc-0.2.5.zip` |
+| Install | Signed APK; matching Magisk ZIP for root modes | `mini-codex-pc-0.2.5.zip` |
 | Guide | [Android installation](docs/install-android.md) | [Windows installation](pc/README.en.md) |
 
 ## How it works

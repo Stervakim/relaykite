@@ -4,6 +4,11 @@ import android.content.*;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.BatteryManager;
+import android.net.LocalServerSocket;
+import android.net.LocalSocket;
+import android.system.Os;
+import org.json.JSONObject;
 import java.io.*;
 import java.util.concurrent.TimeUnit;
 
@@ -13,17 +18,41 @@ public final class WorkerService extends Service {
     private volatile Process child;
     private Thread worker;
     private final Object processLock=new Object();
+    private volatile LocalServerSocket powerSocket;
+    private final BroadcastReceiver battery=new BroadcastReceiver(){public void onReceive(Context context,Intent intent){
+        try{
+            int level=intent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1),scale=intent.getIntExtra(BatteryManager.EXTRA_SCALE,0);
+            JSONObject state=new JSONObject();state.put("enabled",true);state.put("battery",level>=0 && scale>0?level*100/scale:-1);state.put("updated",System.currentTimeMillis()/1000.0);
+            File base=new File(getFilesDir(),"owner");base.mkdirs();File next=new File(base,".power.json");
+            try(OutputStream out=new FileOutputStream(next)){out.write(state.toString().getBytes("UTF-8"));}Os.chmod(next.getPath(),0600);Os.rename(next.getPath(),new File(base,"power.json").getPath());
+        }catch(Exception ignored){}
+    }};
     public IBinder onBind(Intent intent){return null;}
     public void onCreate(){
         super.onCreate();NotificationManager manager=getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel("relaykite-worker","RelayKite",NotificationManager.IMPORTANCE_LOW));
         Intent stop=new Intent(this,WorkerService.class).setAction("stop");
-        PendingIntent stopping=PendingIntent.getService(this,2,stop,PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent stopAction=PendingIntent.getService(this,2,stop,PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent open=PendingIntent.getActivity(this,1,new Intent(this,RuntimeActivity.class),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification=new Notification.Builder(this,"relaykite-worker").setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle("RelayKite 0.2.5").setContentText("Режим без root и Termux").setContentIntent(open).setOngoing(true)
-            .addAction(new Notification.Action.Builder(null,"Остановить",stopping).build()).build();
+            .addAction(new Notification.Action.Builder(null,"Остановить",stopAction).build()).build();
         if(Build.VERSION.SDK_INT>=34)startForeground(25,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(25,notification);
+        registerReceiver(battery,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        new Thread(() -> {
+            try{
+                synchronized(processLock){if(stopping)return;powerSocket=new LocalServerSocket("relaykite-power-"+android.os.Process.myUid());}
+                while(!stopping){
+                    try(LocalSocket peer=powerSocket.accept()){
+                        int uid=peer.getPeerCredentials().getUid();if(uid!=android.os.Process.myUid() && uid!=0)continue;
+                        peer.setSoTimeout(2000);
+                        int level=getSystemService(BatteryManager.class).getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY);
+                        JSONObject state=new JSONObject();state.put("enabled",true);state.put("battery",level>=0 && level<=100?level:-1);state.put("updated",System.currentTimeMillis()/1000.0);
+                        peer.getOutputStream().write(state.toString().getBytes("UTF-8"));
+                    }
+                }
+            }catch(Exception ignored){}
+        },"relaykite-sdk-power").start();
     }
     public synchronized int onStartCommand(Intent intent,int flags,int id){
         if(intent!=null && "stop".equals(intent.getAction())){
@@ -62,6 +91,8 @@ public final class WorkerService extends Service {
         status("stopped");
     }
     public void onDestroy(){
+        unregisterReceiver(battery);
+        try{if(powerSocket!=null)powerSocket.close();}catch(IOException ignored){}
         Process owned;synchronized(processLock){stopping=true;owned=child;if(owned!=null)owned.destroy();}
         if(owned!=null){new Thread(() -> {try{if(!owned.waitFor(30,TimeUnit.SECONDS))owned.destroyForcibly();}catch(InterruptedException ignored){Thread.currentThread().interrupt();}},"relaykite-stop").start();}
         super.onDestroy();

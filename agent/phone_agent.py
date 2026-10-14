@@ -255,6 +255,8 @@ def run_agent(config:dict,state:Path):
     journal=Journal(state)
     from managed_tools import start as start_managed, stop as stop_managed
     managed=start_managed(state,native_phone.dispatch)
+    from summary_worker import SummaryPump
+    summaries=SummaryPump(Relay(config),state.parent);summaries.start()
     disable_file=Path(config['disable_file']) if config.get('disable_file') else None
     stop=False
     def terminate(*_):
@@ -292,6 +294,7 @@ def run_agent(config:dict,state:Path):
                 if disabled(): break
                 time.sleep(.1)
     finally:
+        summaries.close()
         stop_managed(managed)
         journal.db.close()
         logger.info('Agent stopped; no further jobs will execute')

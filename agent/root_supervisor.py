@@ -97,7 +97,7 @@ class Backend:
         if source==target:return
         from memory_bridge import allocated_bytes
         used=allocated_bytes(ROOT)+allocated_bytes(APP)
-        names=[name for name in ('state','memory','memory-service','project-graph','support') if (source/name).is_dir()]
+        names=[name for name in ('state','memory','memory-service','project-graph','project-source','support') if (source/name).is_dir()]
         extra=sum(allocated_bytes(source/name) for name in names)
         if used+extra+64*1024**2>CAP:raise RuntimeError('Combined private storage quota cannot hold migration and backups')
         target.mkdir(parents=True,exist_ok=True,mode=0o700)
@@ -115,15 +115,18 @@ class Backend:
         else:
             bridge.update(data_dir=memory['data_dir'],accounting_roots=[str(ROOT),str(APP)],external_reserved_bytes=0)
             memory['quota_bytes']=CAP-32*1024**2
+        config_names=['config.json','memory-node.json','memory-service.json']
         for name,value in (('config.json',config),('memory-node.json',memory),('memory-service.json',bridge)):private_json(staging/name,value)
+        if (source/'summary-route.json').is_file():
+            private_json(staging/'summary-route.json',json.loads((source/'summary-route.json').read_text()));config_names.append('summary-route.json')
         backup=target/'mode-backups'/ident;backup.mkdir(parents=True,mode=0o700)
-        for name in names+['config.json','memory-node.json','memory-service.json']:
+        for name in names+config_names:
             old=target/name
             if old.exists():old.rename(backup/name)
             (staging/name).rename(old)
         staging.rmdir()
         uid=self.uid if mode=='app' else 0
-        for name in names+['config.json','memory-node.json','memory-service.json']:
+        for name in names+config_names:
             path=target/name
             for child in (path,*path.rglob('*')) if path.is_dir() else (path,):
                 if child.is_symlink():raise ValueError('Migrated data must not contain links')

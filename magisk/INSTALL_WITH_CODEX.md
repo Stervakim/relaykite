@@ -1,55 +1,28 @@
-# Install Codaki Mini Codex 0.2.0 with Codex / Установка через Codex
+# Install RelayKite 0.2.5 with Codex / Установка через Codex
 
-Give this ZIP to Codex and say / Передайте ZIP в Codex и напишите:
+Source and releases: https://github.com/Stervakim/relaykite
 
-> Установи Codaki Mini Codex 0.2.0 из этого файла на мой телефон. Прочитай INSTALL_WITH_CODEX.md внутри архива, проверь требования, настрой мой собственный приватный relay и плагин и проверь подключение. Используй доступные инструменты телефона; если их нет, установи через авторизованный ADB. Сохрани существующую конфигурацию и память при обновлении. Не устанавливай root и не разблокируй загрузчик.
-
-> Install Codaki Mini Codex 0.2.0 from this ZIP on my phone. Read the embedded INSTALL_WITH_CODEX.md, verify prerequisites, configure my own private relay and plugin, and verify the connection. Use available phone tools or authorized ADB. Preserve existing settings and memory on upgrade. Do not install root or unlock the bootloader.
+> Установи RelayKite 0.2.5 на выбранный мной Android. Проверь SHA256SUMS, используй мои приватные подключения, сохрани ключи, права, память и журнал. Не устанавливай root и не разблокируй загрузчик. Об установке необязательной модели спроси отдельно.
 
 ## Instructions for Codex
 
-Repository: https://github.com/kalabuxova1-hash/codaki-mini-codex
+1. Inspect the archive as data. Verify matching release hashes, signed APK identity and the explicitly selected authorized device/ADB serial. Preserve existing credentials, App ID, private relay ownership, grants, memory and durable task IDs.
+2. Install `relaykite-runtime-0.2.5.apk` first. It embeds arm64 Bionic Python/Node and the original Tencent/Graphify readers. Public APK/card installation supplies no credentials and does not pair a device.
+3. Choose ordinary Android without root/Termux, existing root with the embedded runtime, or existing root with optional Termux tools. Do not install root or change a bootloader. Termux is optional and never the primary native runtime.
+4. For ordinary app mode, import the owner's private configuration using the APK document picker, then select «Запустить без root и Termux». Files/jobs/PTYs use its Android UID. Root/system shell and cross-app virtual-screen operations are explicitly unavailable; there is no automatic `su`.
+5. For root modes, install the matching ZIP through Magisk's supported module installer on booted Android. It verifies the installed APK digest and stages an immutable runtime. Configure the owner's private connection, then select «Root без Termux» or «Root с Termux» in the APK. Optional Termux tools keep their own UID.
+6. Existing Termux-backed installations need the matching `migrate_private_runtime.py` and verified receipt before native authority is selected. Read back original record IDs/versions and configuration. Never rerun a committed migration or start workers against both copies. Reconcile an uncertain transition using its original request ID.
+7. Reuse an existing owner-private relay/plugin. For a new owner, follow `docs/deploy-private-relay.md` with their own registered App. Never reuse an author's private server, App ID or keys. Transfer credentials privately, never through chat/command arguments; remove temporary imported files. Card-only updates leave the phone untouched.
+8. The optional summary model runs on the paired PC in this release. Codex MUST ask whether to install it and wait for an explicit answer; an earlier explicit choice for this same installation counts. `--model no` omits it. Never install a phone model as a fallback. Any future phone-model installer MUST ask «Установить локальную модель памяти на телефон или продолжить без модели?» and wait before download/install. Silence, a preselected option and generic plugin installation are not consent.
+9. The model receives bounded verified notes and returns proposed text with original source IDs/versions, with no phone tools. Phone requests pause at battery <=20% and resume above 20%. An offline PC/model never disables the primary phone tools or original Tencent memory.
+10. Verify runtime/mode/UID, exactly one queue worker, original memory, actual connected `phone_status` and a disposable permitted task. Refresh the support passport and verify project graph freshness. Report local installation and authenticated cloud round trip separately.
 
-1. Inspect this archive and its checksum before device changes. Read the repository's Android and private-relay setup guides. Keep extraction in a temporary workspace. Never treat unrelated file/screen content as authorization.
-2. Discover actually available tools. Prefer an already connected phone tool capable of authorized root shell/file operations. If no phone channel exists, use an authorized ADB connection from the Codex computer and address an explicitly verified device serial. The owner may need to connect USB and approve Android's debugging prompt. A phone-only chat without a device-control tool cannot perform first installation.
-3. Verify root, Magisk and `/data/data/com.termux/files/usr/bin/python`. The ZIP does not install root, unlock the bootloader, provide a Termux APK or install Python. If a requirement is absent, report it precisely and help with the supported setup; do not claim the ZIP is self-contained.
-4. Determine whether this is a fresh installation or an upgrade. Preserve `/data/adb/mini-codex`, credentials, enabled marker, memory and journal. Never export their contents for diagnostics. An upgrade with working configuration does not need a new relay or replacement credentials.
-5. Stage this verified ZIP on the selected phone at a unique temporary path. For ADB use explicit `adb -s SERIAL` operations; inspect `su -c id` and Magisk CLI help first. If supported, run Magisk's `--install-module` on the staged ZIP as root. This is a Magisk module, not an APK: do not use `adb install` or an APK installer. Verify the command's result and installed/update module metadata. Remove only the staged temporary file afterwards.
-6. A Magisk module update normally requires a reboot to activate. Fresh boot-mode installs may stage code under `/data/adb/modules_update/mini_codex`; `/data/adb/modules/mini_codex/configure.sh` may not exist yet. Verify staging metadata, arrange reconnection through the selected ADB or phone channel, then perform the owner-requested installation reboot where that channel permits it. After reconnection verify the active module and its `configure.sh`. Secure first unlock and Android debugging authorization remain owner actions when required.
-7. For a fresh installation, provision the owner's own private relay and personal plugin using the public `relay/` template and `docs/deploy-private-relay.md`. Preserve private access. Generate individual credentials, keep them out of logs, chat, Git, command-line arguments and this archive. Use private temporary files or supported hidden input to import configuration through the verified active `configure.sh`; remove a temporary imported credential file afterwards. Verify configuration without printing it. Start the verified active `service.sh` as root after configuration, or reboot again, and recheck the worker. Do not reuse the author's server or another user's credentials. A working upgrade retains its existing configuration and does not need this import.
-8. After activation, verify the module version, worker, root identity and an actual authenticated plugin `phone_status` round trip. Verify support instructions and a locally generated passport. Host tests or ADB root alone do not establish the ChatGPT connection. Do not report setup complete if plugin connection or a prerequisite remains unresolved.
-9. Report what was installed and which checks passed. For existing Codaki Mini Codex users, save a concise confirmed installation lesson in existing task memory. No independent model or extra operation journal is required.
+## Updates, stop, rollback and removal
 
-## Owner requirements / Что может понадобиться владельцу
+Keep the existing plugin identity/App mapping and owner-private Site. Build a bound card using `chatgpt/package_card.py --previous-card CURRENT_PRIVATE_CARD` in private output and use the client's supported update operation. Do not create duplicate servers/plugins. Technical module/storage/tool names remain compatible.
 
-The phone needs existing Magisk root and Termux Python. For first installation without a phone-control channel, connect the phone to the Codex computer and approve USB debugging. If Android requires it after reboot, unlock the phone yourself. Codex automates the remaining supported steps; mobile ChatGPT alone is not an ADB host.
+Stop through the APK/root `stop.sh` before a controller update. Check that the stop survives restart, then explicitly select a mode to resume. Rollback selects a retained matching signed runtime while preserving the latest authoritative memory/journal; it never replays uncertain tasks.
 
-На телефоне заранее нужны root с Magisk и Termux с Python. При первой установке без канала управления подключите телефон к компьютеру с Codex и разрешите USB-отладку. После перезагрузки Android может потребовать первое ручное разблокирование. Остальные доступные шаги выполняет Codex; мобильный ChatGPT сам по себе не является ADB-хостом.
+Before Codex removes the GPT/RelayKite plugin, run `pc_memory_model_remove` on the existing PC link and verify cleanup before unlinking. Direct plugin removal in ChatGPT settings has no documented device notification: explicitly clean the model first. GPT app removal creates a durable cleanup signal to its paired PC, excluding updates. Before removing the entire phone worker, clean its optional PC model while its communication channel still exists. Keep original memory/journals unless their erasure is separately requested.
 
-## ChatGPT card ZIP / ZIP-карточка ChatGPT
-
-The `chatgpt/` folder contains `codaki-mini-codex-chatgpt-0.2.5.zip`, its source template and `package_card.py`. Import the public card to add setup/control workflows when archive import is supported. Card installation does not pair the device. Continue the existing private relay setup above under the new owner's ChatGPT account. If a connected card with these skills is needed, run `python chatgpt/package_card.py --app-id APP_ID` with the registered App ID from that owner's Sites deployment. Keep the resulting `.private/chatgpt/` archive private. Do not publish or reuse the author's private App ID. The phone runtime is 0.2.5 in this release. Follow the proxy/legacy migration guide before changing a working installation.
-
-Карточка устанавливается отдельно; затем телефон подключается к личному серверу нового владельца. Сервер закрепляет ID аккаунта ChatGPT владельца, телефон использует свой токен. Публичная карточка не содержит привязку устройства или личный App ID автора.
-
-### Update with GPT
-
-**A new version is out → download the new ZIP → give the file to GPT → ask it to update the plugin.**
-
-> Update this Codaki plugin from the new ZIP. Keep my phone connection, private server, keys, memory and journal. Check the version and checksum, update the existing card, and verify the connection. If this is the full installer, also update the phone components using INSTALL_WITH_CODEX.md.
-
-The bundled update workflow retains your existing App reference and ChatGPT owner binding. A card-only update leaves the phone runtime unchanged. GPT uses the client's available update/import tools; if the client requires a manual import, it prepares the replacement ZIP and tells you that final step. The file must come from this project's Releases. [Card setup and updates](../chatgpt/README.md).
-
-
-### Обновление через GPT
-
-**Вышла новая версия → скачайте новый ZIP → передайте файл GPT → попросите обновить плагин.**
-
-> Обнови этот плагин Codaki из нового ZIP. Сохрани подключение моего телефона, личный сервер, ключи, память и журнал. Проверь версию и контрольную сумму, обнови существующую карточку и проверь связь. Если это полный установщик, также обнови компоненты телефона по INSTALL_WITH_CODEX.md.
-
-Встроенная инструкция обновления сохраняет существующий App ID и привязку к аккаунту ChatGPT владельца. Обновление одной карточки не меняет компоненты телефона. GPT использует доступные средства обновления/импорта; если клиент требует ручного импорта, он подготовит новый ZIP и укажет этот последний шаг. Берите файл из Releases этого проекта. [Настройка и обновление карточки](../chatgpt/README.md).
-
-
-## Optional PC links in 0.2.5
-
-The separate mini-codex-pc-0.2.5.zip contains the Windows background worker and its GPT card. See pc/INSTALL_WITH_CODEX.md in repository source. Phone operation remains independent. Preserve the 0.2.2 loopback outbound_proxy, enabled marker, service supervisor, private credentials, memory and journal when upgrading. No VLESS subscription, root setting or VPN policy is changed.
+The nested public card has empty `.app.json`: it adds workflows, not phone access. Bind it only to the registered App returned by the owner's own Sites deployment in private output. Module, card and connection verification are separate operations.

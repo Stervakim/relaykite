@@ -21,7 +21,9 @@ def main():
             rel=p.relative_to(root)
             if p.name.startswith('test') or '.test.' in p.name or any(x in ('node_modules','__pycache__','__tests__','.git') for x in rel.parts):continue
             q=corpus/prefix/rel;q.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(p,q);files.append(q)
-            source='@runtime/agent/'+rel.as_posix() if prefix=='codaki/agent' else '@base/project-source/'+prefix+'/'+rel.as_posix()
+            # Compiled Tencent JS runs in the APK; its TypeScript reference
+            # stays in the bounded source mirror rather than executable assets.
+            source='@runtime/agent/'+rel.as_posix() if prefix=='codaki/agent' and p.suffix!='.ts' else '@base/project-source/'+prefix+'/'+rel.as_posix()
             sources[source]=hashlib.sha256(p.read_bytes()).hexdigest()
     if not files:raise RuntimeError('No allowed source files')
     # Original deterministic AST extractor only; no semantic/model pass.

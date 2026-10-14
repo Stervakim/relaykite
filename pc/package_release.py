@@ -7,7 +7,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '0.2.5'
-PC_FILES = ('mini_codex_pc.py', 'portable_client.py', 'portable-tools.json', 'install-background.ps1', 'INSTALL_WITH_CODEX.md', 'README.md',
+PC_FILES = ('mini_codex_pc.py', 'memory_summary.py', 'model_runtime.py', 'prepare_model_inputs.py', 'portable_client.py', 'portable-tools.json', 'install-background.ps1', 'INSTALL_WITH_CODEX.md', 'README.md',
             'LICENSE', 'phone-tools.json', 'package_release.py', 'relay-files.json',
             'chatgpt/package_card.py', 'chatgpt/README.md')
 

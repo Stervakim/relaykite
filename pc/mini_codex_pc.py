@@ -25,6 +25,8 @@ OPERATIONS = {'pc_status': None, 'pc_terminal': 'terminal', 'pc_read_file': 'fil
               'pc_write_file': 'files_write', 'pc_list_files': 'files_read', 'pc_codex': 'codex'}
 PORTABLE_OPERATIONS=('apps','capabilities','diagnostics','session_start','session_extend','session_stop','observe','launch','action','batch','result','reconcile')
 OPERATIONS.update({'pc_use_'+op:'terminal' for op in PORTABLE_OPERATIONS})
+OPERATIONS['pc_memory_summarize']=None
+OPERATIONS['pc_memory_model_remove']=None
 MAX_OUTPUT = 24000  # UTF-8 JSON expansion remains below the relay result limit.
 
 
@@ -168,6 +170,15 @@ def execute(tool, args, config, base, scope=None):
     cap = OPERATIONS[tool]
     if cap and cap not in config.get('capabilities', []): raise PermissionError('Capability disabled locally')
     if not isinstance(args, dict): raise ValueError('Arguments object required')
+    if tool=='pc_memory_model_remove':
+        if args:raise ValueError('Model cleanup accepts no path or command')
+        from model_runtime import remove
+        result=remove();(base/'summary.json').unlink(missing_ok=True)
+        return result
+    if tool=='pc_memory_summarize':
+        if set(args)!={'events'}:raise ValueError('Only memory source events permitted')
+        from memory_summary import summarize
+        return summarize(args['events'],base)
     if tool.startswith('pc_use_'):
         from portable_client import invoke
         return invoke(tool.removeprefix('pc_use_'),args,scope)
@@ -285,10 +296,13 @@ class InstanceLock:
 
 def run(base, once=False):
     with InstanceLock(base):
+        from model_runtime import ensure
+        ensure()
         journal = Journal(base)
         try:
             while not (base/'disabled').exists():
                 config = load_config(base)
+                ensure()
                 for ident, local in config['connections'].items():
                     if not local.get('enabled'): continue
                     try:
