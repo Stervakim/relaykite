@@ -1,5 +1,5 @@
 """Optional memory-only producer; model results are always proposed records."""
-import hashlib,json,sqlite3,threading,time
+import hashlib,json,sqlite3,threading,time,urllib.error
 from pathlib import Path
 from contextlib import closing
 from runtime_paths import BASE
@@ -51,13 +51,24 @@ class SummaryPump:
                 db.execute("INSERT INTO background_summaries(id,job_id,status,updated,payload) VALUES(?,NULL,'started',?,?)",(ident,time.time(),json.dumps({'connection_id':connection,'events':events})));db.commit()
             body={'action':'from_phone','connection_id':connection}
             if old and old[0]:
-                reply=self.relay.request('/bridge/api',body|{'operation':'result','job_id':old[0]})
+                try:reply=self.relay.request('/bridge/api',body|{'operation':'result','job_id':old[0]})
+                except urllib.error.HTTPError as error:
+                    try:
+                        expired=error.code in (400,403,404,410) and json.loads(error.read(1024)).get('error')=='Job not found or expired; inspect PC state before retrying'
+                    except (ValueError,AttributeError):expired=False
+                    finally:error.close()
+                    if not expired:raise
+                    db.execute("UPDATE background_summaries SET status='unavailable',payload=NULL WHERE id=?",(ident,));db.commit()
+                    return {'request_id':ident,'status':'unavailable','reason':'receipt_expired'}
             else:
                 reply=self.relay.request('/bridge/api',body|{'operation':'call','tool':'pc_memory_summarize','arguments':{'events':events},'request_id':ident})
             if self.stop.is_set():return {'stopped':True}
             job=reply.get('job_id')
             if not isinstance(job,str):raise ValueError('Summary job receipt missing')
             db.execute('UPDATE background_summaries SET job_id=?,updated=? WHERE id=?',(job,time.time(),ident));db.commit()
+            if reply.get('status')=='cancelled':
+                db.execute("UPDATE background_summaries SET status='unavailable',payload=NULL WHERE id=?",(ident,));db.commit()
+                return {'request_id':ident,'status':'unavailable','reason':'cancelled'}
             if reply.get('status') not in ('completed','uncertain'):return {'request_id':ident,'status':'pending'}
             result=reply.get('result',{})
             if reply.get('status')=='uncertain' or not isinstance(result,dict) or result.get('available') is not True:

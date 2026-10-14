@@ -297,12 +297,14 @@ class InstanceLock:
 def run(base, once=False):
     with InstanceLock(base):
         from model_runtime import ensure
-        ensure()
+        try:ensure()
+        except Exception:pass  # Optional model setup cannot stop core PC tools.
         journal = Journal(base)
         try:
             while not (base/'disabled').exists():
                 config = load_config(base)
-                ensure()
+                try:ensure()
+                except Exception:pass
                 for ident, local in config['connections'].items():
                     if not local.get('enabled'): continue
                     try:

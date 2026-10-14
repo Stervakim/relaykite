@@ -15,6 +15,13 @@ pc = importlib.util.module_from_spec(spec); spec.loader.exec_module(pc)
 
 
 class PCTests(unittest.TestCase):
+    def test_optional_model_start_failure_does_not_stop_pc_queue(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as tmp:
+            base=Path(tmp);journal=Mock()
+            with patch.dict(sys.modules,{'model_runtime':Mock(ensure=Mock(side_effect=OSError('model unavailable')))}),patch.object(pc,'InstanceLock'),patch.object(pc,'Journal',return_value=journal),patch.object(pc,'load_config',return_value={'connections':{}}) as load:
+                pc.run(base,once=True)
+            load.assert_called_once();journal.db.close.assert_called_once()
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.root = Path(self.temp.name)
         self.base = self.root/'private'; self.base.mkdir()

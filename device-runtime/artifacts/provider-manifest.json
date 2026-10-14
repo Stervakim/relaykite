@@ -1,7 +1,7 @@
 {
   "version": "0.2.5",
   "package": "org.relaykite.runtime",
-  "apk_sha256": "83fadeccf5adafba4d776e0ba65c05325a5dd029dc2bbb3e62008480ddfbdc43",
+  "apk_sha256": "2384507e85f0bc62b322c7cd9f2ea44fd3a8a6a5dcd00b76be42d70069bc30f1",
   "dex_sha256": "855072ae268d049c1d7afb362d5c649e361d07c0c42e8541e4b3789966030f40",
   "r8_sha256": "cd849dec47fe15ff349199162d7a6caaffd8548703fcb167d5c450afe8b67180",
   "android_jar_sha256": "aec874bb691a604a64b93c907b65c26bcc1311050e09413cf050bc5bd9e68488",
