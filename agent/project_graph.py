@@ -8,7 +8,8 @@ if runtime.is_file():sys.path.insert(0,str(runtime))
 from graphify.serve import _read_graph,_query_graph_text,_resolve_single_node,_shortest_path_text
 
 VERSION='0.9.88'
-DEFAULT_DIR=Path('/data/adb/mini-codex/project-graph')
+from runtime_paths import BASE
+DEFAULT_DIR=BASE/'project-graph'
 _cache={}
 
 def _text(value,name):
@@ -34,7 +35,11 @@ class ProjectGraph:
             _cache.clear();_cache[key]=_read_graph(str(p))
         changed=[]
         for name,expected in m.get('sources',{}).items():
-            src=Path(name)
+            if name.startswith('@runtime/'):
+                src=Path(__file__).resolve().parents[1]/name.removeprefix('@runtime/')
+            elif name.startswith('@base/'):
+                src=BASE/name.removeprefix('@base/')
+            else:src=Path(name)
             if src.is_symlink() or not src.is_file() or hashlib.sha256(src.read_bytes()).hexdigest()!=expected:changed.append(name)
         return _cache[key],m,changed
     def _result(self,result:str,m:dict,changed:list)->dict:

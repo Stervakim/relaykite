@@ -1,0 +1,29 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.relaykite.runtime" android:versionCode="25" android:versionName="0.2.5">
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="35" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <queries><package android:name="com.openai.chatgpt" /></queries>
+    <application android:label="RelayKite Runtime" android:allowBackup="false"
+        android:usesCleartextTraffic="false" android:debuggable="false" android:extractNativeLibs="true">
+        <activity android:name="org.relaykite.runtime.RuntimeActivity" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
+        </activity>
+        <service android:name="org.relaykite.runtime.WorkerService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="Owner initiated, visible and stoppable private device task worker with an authenticated outbound queue" />
+        </service>
+        <receiver android:name="org.relaykite.runtime.BootReceiver" android:exported="false">
+            <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.MY_PACKAGE_REPLACED"/></intent-filter>
+        </receiver>
+        <receiver android:name="org.relaykite.runtime.ModelRemovalReceiver" android:exported="true">
+            <intent-filter><action android:name="android.intent.action.PACKAGE_REMOVED"/><data android:scheme="package" /></intent-filter>
+        </receiver>
+        <provider android:name="org.relaykite.runtime.ScopedFileProvider"
+            android:authorities="org.relaykite.runtime.files"
+            android:exported="false" android:grantUriPermissions="true" />
+        <activity android:name="org.relaykite.runtime.FileLaunchActivity" android:exported="false"
+            android:documentLaunchMode="always" android:excludeFromRecents="true" />
+    </application>
+</manifest>

@@ -1023,7 +1023,7 @@
   },
   {
     "name": "phone_use_batch",
-    "description": "Use the owner-bound phone through the existing Portable engine. Execute 1–12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with phone_job_result; never resubmit input to poll.",
+    "description": "Use the owner-bound phone through the existing Portable engine. Execute 1вЂ“12 known semantic steps sequentially on a fresh observation. Stops on first error, ambiguity, uncertainty or timeout. Completed steps are retained; no rollback, replay or automatic resume. Use stable selectors without positional IDs or coordinates. Reconcile uncertain child request IDs after checking the actual screen. Retrieve pending job_id with phone_job_result; never resubmit input to poll.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1270,6 +1270,926 @@
       "readOnlyHint": false,
       "destructiveHint": true,
       "openWorldHint": true
+    }
+  },
+  {
+    "name": "phone_use_file_open",
+    "description": "Open an owned read-only RelayKite content URI in the selected application on this Android virtual display. Observe afterwards to verify.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "app_id": {
+          "type": "string",
+          "maxLength": 256
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "uri": {
+          "type": "string",
+          "pattern": "^content://org\\.relaykite\\.runtime\\.files/[a-f0-9]{32}\\.[a-z0-9]{1,12}$",
+          "maxLength": 256
+        },
+        "mime_type": {
+          "type": "string",
+          "pattern": "^[a-z0-9.+-]+/[a-z0-9.+-]+$",
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "session_id",
+        "app_id",
+        "request_id",
+        "uri",
+        "mime_type"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "phone_task_start",
+    "description": "Start an owner-authorized tool as a durable bounded background task. Reuse request_id; poll status/result. Short calls and independent resources remain responsive.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "tool": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "arguments": {
+          "type": "object"
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      },
+      "required": [
+        "request_id",
+        "tool",
+        "arguments"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_task_status",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_task_result",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_task_cancel",
+    "description": "Cancel only a queued managed task. Running effects require supported targeted termination and are never claimed cancelled.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_terminal_open",
+    "description": "Open a real interactive PTY with explicit system (UID 2000), root or optional Termux backend. Stable request ID prevents reopening after restart.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "app",
+            "system",
+            "root",
+            "termux"
+          ]
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        }
+      },
+      "required": [
+        "request_id",
+        "mode"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_terminal_list",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_terminal_read",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "cursor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      },
+      "required": [
+        "terminal_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_terminal_write",
+    "description": "Send base64 stdin once using a stable request ID. An uncertain write must be inspected, never replayed under a new ID.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "base64": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 87384
+        }
+      },
+      "required": [
+        "terminal_id",
+        "request_id",
+        "base64"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_terminal_resize",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 300
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
+        }
+      },
+      "required": [
+        "terminal_id",
+        "rows",
+        "columns"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_terminal_close",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "terminal_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_command_start",
+    "description": "Start a shell command in its own PTY/process group, with bounded output and deadline. Read its original terminal_id; do not repeat an uncertain command.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "app",
+            "system",
+            "root",
+            "termux"
+          ]
+        },
+        "cwd": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      },
+      "required": [
+        "request_id",
+        "mode",
+        "command"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_command_status",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "terminal_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_command_result",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "cursor": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      },
+      "required": [
+        "terminal_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_command_terminate",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "terminal_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "terminal_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_copy",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "expected_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "request_id",
+        "source",
+        "destination"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_move",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "expected_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "request_id",
+        "source",
+        "destination"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_rename",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "overwrite": {
+          "type": "boolean"
+        },
+        "expected_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "request_id",
+        "source",
+        "destination"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_stat",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_checksum",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_delete",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "expected_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "request_id",
+        "path"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_transfer_start",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "destination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "total_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        },
+        "overwrite": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "request_id",
+        "destination",
+        "total_bytes",
+        "sha256"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_transfer_status",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "transfer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "transfer_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_transfer_chunk",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "transfer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483648
+        },
+        "base64": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 349528
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "minLength": 64,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "transfer_id",
+        "offset",
+        "base64",
+        "sha256"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_transfer_commit",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "transfer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "transfer_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_transfer_abort",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "transfer_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "transfer_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "phone_file_open",
+    "description": "Read or control the selected owned managed task/terminal; preserve IDs and inspect uncertain outcomes.",
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 100,
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "session_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "app_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "mime_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        }
+      },
+      "required": [
+        "request_id",
+        "session_id",
+        "app_id",
+        "path",
+        "mime_type"
+      ],
+      "additionalProperties": false
     }
   }
 ]

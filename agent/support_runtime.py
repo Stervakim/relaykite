@@ -9,6 +9,8 @@ import re
 import stat
 import tempfile
 import time
+import sys,shlex
+from runtime_paths import BASE,MODE
 
 PATHS = {
     'mini_codex': '/data/adb/mini-codex',
@@ -32,6 +34,15 @@ KEY_PACKAGES = ('com.termux', 'com.openai.chatgpt', 'com.topjohnwu.magisk',
                 'io.github.mekhontsev.magicdesk', 'su.happ.proxyutility',
                 'com.sevtinge.hyperceiler', 'org.lsposed.corepatch')
 
+def runtime_paths(base):
+    paths=PATHS.copy();runtime=Path(__file__).resolve().parent
+    paths.update(mini_codex=str(base),job_log=str(base/'state/agent.log'),job_journal=str(base/'state/jobs.sqlite3'),memory=str(base/'memory'),project_graph=str(base/'project-graph'),python=sys.executable)
+    if os.environ.get('RELAYKITE_NATIVE'):
+        paths.update(node=str(Path(os.environ['RELAYKITE_NATIVE'])/'librelaykite_node.so'),tencent_memory=str(base/'memory-service/data'),memory_supervisor=str(runtime/'app_worker.py'))
+    if MODE=='app':
+        paths={k:v for k,v in paths.items() if k not in ('modules','network_proxy','network_boot','lsposed','boot_service')}
+    return paths
+
 
 def read_owned(path: Path, limit: int) -> str:
     if path.parent.is_symlink() or path.is_symlink():
@@ -51,7 +62,7 @@ def get_context(base: Path) -> dict:
     result = {'state': 'partial', 'skill_path': str(references/'SKILL.md'),
               'passport_path': str(directory/'passport.json'),
               'service_reference': str(references/'services.md'),
-              'refresh_command': '/data/data/com.termux/files/usr/bin/python ' + str(Path(__file__).resolve()) + ' refresh',
+              'refresh_command': shlex.quote(sys.executable)+' '+shlex.quote(str(Path(__file__).resolve()))+' refresh',
               'memory_query': 'mini-codex-support', 'passport_stale': True}
     try:
         result['instructions'] = read_owned(references/'SKILL.md', 16384)
@@ -122,9 +133,9 @@ def refresh(base: Path, run) -> dict:
         'schema_version': 1, 'verified_at': datetime.fromtimestamp(epoch, timezone.utc).isoformat(), 'verified_epoch': epoch,
         'source': 'phone-local OS properties, package manager, module metadata and path existence',
         'device': dict(zip(('model','codename','manufacturer','android','build'), props), root_identity=identity),
-        'python_version': run('/data/data/com.termux/files/usr/bin/python --version'),
+        'python_version': 'Python '+sys.version.split()[0],
         'packages': sorted(packages, key=lambda p:p['package']), 'modules': modules,
-        'paths': {name:{'path':path,'exists':Path(path).exists()} for name,path in PATHS.items()},
+        'paths': {name:{'path':path,'exists':Path(path).exists()} for name,path in runtime_paths(base).items()},
         'limitations': ['Snapshot: recheck affected paths/packages before changing them.',
                         'Module enable markers are configuration metadata, not proof of a running process.',
                         'Credentials, private application files, accounts and file contents are not inventoried.'],

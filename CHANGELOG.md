@@ -1,8 +1,8 @@
-# RelayKite 0.2.4 — Let ChatGPT use your devices
+# RelayKite 0.2.5 — Let ChatGPT use your devices
 
 **Let ChatGPT tap, swipe and run tasks on your Android phone and Windows PC.** RelayKite connects your conversation to local device agents through your own private HTTPS MCP relay.
 
-- **Android:** app and screen control, files and authorized system tasks. The worker runs on the phone; everyday use after setup needs no permanently running PC. Existing root, Magisk and Termux are required.
+- **Android:** signed embedded runtime, ordinary app mode, root without Termux, and root with optional Termux tools. Three Android virtual displays require the privileged Portable component. Durable tasks, PTYs, atomic files and resumable transfers preserve operation receipts across restart.
 - **Windows:** a separate background worker for authorized PowerShell and file operations. Python 3.14+ and configured permissions are required; no phone is needed.
 
 Both need internet, your own relay and a supported personal ChatGPT plugin connection. ChatGPT supplies the AI decisions.
@@ -14,6 +14,10 @@ Previously **Codaki Mini Codex**. Archive filenames and internal IDs keep their 
 ---
 
 # Changelog
+
+## 0.2.5 — Native runtime and durable device work
+
+Explicit privilege modes preserve owner configuration, original Tencent records and journal IDs. Portable Android 0.1.4 supports three independent nonzero displays; Windows supports eight window leases with serialized physical input. Optional Qwen3-0.6B runs directly on the paired PC, prepares proposed source-linked summaries and receives no device tools. Phone requests pause at <=20% battery. Model installation requires an explicit choice; supported plugin/GPT removal includes dedicated model cleanup. Core phone tools work when the PC/model is unavailable. Graphify remains the original code extractor with source freshness checks.
 
 ## 0.2.4 — Tencent memory and Graphify
 

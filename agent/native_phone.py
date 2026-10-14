@@ -22,16 +22,19 @@ import uuid
 import xml.etree.ElementTree as ET
 
 BASE=Path(__file__).resolve().parent
-SUPPORT_BASE=Path('/data/adb/mini-codex')
+from runtime_paths import BASE as SUPPORT_BASE,identity as runtime_identity
 LOCK=threading.RLock()
 TOTAL_STORAGE_BYTES=5*1024*1024*1024
-AGENT_STORAGE_RESERVE_BYTES=16*1024*1024
+AGENT_STORAGE_RESERVE_BYTES=32*1024*1024
 MAX_MEMORY_BYTES=TOTAL_STORAGE_BYTES-AGENT_STORAGE_RESERVE_BYTES
 _RECOVERED_MEMORY_DATABASES=set()
 
 from portable_tools import OPERATIONS as PORTABLE_OPERATIONS,wrapper as portable_wrapper
 for _portable_operation in PORTABLE_OPERATIONS:
     globals()['phone_use_'+_portable_operation]=portable_wrapper(_portable_operation)
+from managed_tools import OPERATIONS as MANAGED_OPERATIONS, wrapper as managed_wrapper
+for _managed_operation in MANAGED_OPERATIONS:
+    globals()[_managed_operation]=managed_wrapper(_managed_operation)
 
 
 def adb(*args: str, timeout: int=30, binary: bool=False):
@@ -46,7 +49,7 @@ def adb(*args: str, timeout: int=30, binary: bool=False):
                 if len(parts) != 3:
                     raise ValueError('Malformed root command wrapper')
                 command = parts[2]
-            return run_android(command, timeout=timeout, binary=binary)
+            return run_android(command, timeout=timeout, binary=binary,require_root=args[1].startswith('su -c '))
         if args and args[0] == 'exec-out':
             if len(args) == 2 and args[1].startswith('su -c '):
                 parts = shlex.split(args[1])
@@ -64,17 +67,16 @@ def adb(*args: str, timeout: int=30, binary: bool=False):
             return 'Copied locally on Android'
         raise ValueError('Unsupported local Android backend operation')
 
-def run_android(command: str, *, timeout: int=30, binary: bool=False):
-    su = os.environ.get('ANDROID_SU', '/system/bin/su')
+def run_android(command: str, *, timeout: int=30, binary: bool=False,require_root:bool=True):
     is_root = getattr(os, 'geteuid', lambda: -1)() == 0
-    if not is_root and (not Path(su).is_file()):
-        raise RuntimeError('Android Magisk su not found; set ANDROID_SU to its actual path')
+    if require_root and not is_root:
+        raise PermissionError('This operation requires explicitly selected root mode; app mode never requests su')
     full_command = 'export PATH=/system/bin:/system/xbin; ' + command
     environment = os.environ.copy()
     environment.pop('LD_PRELOAD', None)
     environment.pop('LD_LIBRARY_PATH', None)
     try:
-        argv = ['/system/bin/sh', '-c', full_command] if is_root else [su, '-c', full_command]
+        argv = ['/system/bin/sh', '-c', full_command]
         result = subprocess.run(argv, capture_output=True, timeout=timeout, env=environment)
     except subprocess.TimeoutExpired as exc:
         raise RuntimeError('Android root command timed out') from exc
@@ -109,9 +111,10 @@ def phone_status() -> dict:
     """Read connection, model, Android/build version, battery and root availability."""
     state = adb('get-state')
     props = shell('getprop ro.product.model; getprop ro.build.version.release; getprop ro.build.version.incremental', root=False).splitlines()
-    battery = shell('dumpsys battery', root=False)
+    active=runtime_identity()
+    battery = shell('dumpsys battery', root=False) if active['root_active'] else ''
     level = re.search('level:\\s*(\\d+)', battery)
-    result = {'state': state, 'observed_at': time.time(), 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id')}
+    result = {'state': state, 'observed_at': time.time(), 'model': props[0] if props else '', 'android': props[1] if len(props) > 1 else '', 'build': props[2] if len(props) > 2 else '', 'battery_percent': int(level[1]) if level else None, 'root_identity': shell('id',root=active['root_active']),'runtime':active}
     try:
         from support_runtime import get_context
         result['support'] = get_context(SUPPORT_BASE)
@@ -236,12 +239,14 @@ def root_shell(command: str, timeout_seconds: int=30) -> dict:
         raise ValueError('Command is empty or contains a null byte')
     if not 1 <= timeout_seconds <= 120:
         raise ValueError('timeout_seconds must be 1..120')
-    result = shell(command, timeout=timeout_seconds)
+    # Shell jobs run in their own process; a long command must not hold the
+    # UI inspector/input lock and delay independent reads or PTYs.
+    result = run_android(command, timeout=timeout_seconds)
     return {'output': result[:60000], 'truncated': len(result) > 60000}
 
 def phone_list_files(directory: str, include_hidden: bool=False) -> dict:
-    """List an owner-requested Android directory with root, including app/private folders when explicitly requested."""
-    result = shell('ls ' + ('-la ' if include_hidden else '-l ') + '-- ' + phone_path(directory))
+    """List an owner-requested directory using the selected runtime UID."""
+    result = shell('ls ' + ('-la ' if include_hidden else '-l ') + '-- ' + phone_path(directory),root=False)
     return {'directory': directory, 'listing': result[:60000], 'truncated': len(result) > 60000}
 
 def phone_read_file(path: str, encoding: str='utf-8', max_bytes: int=262144) -> dict:
@@ -249,17 +254,34 @@ def phone_read_file(path: str, encoding: str='utf-8', max_bytes: int=262144) -> 
     if encoding not in ('utf-8', 'base64') or not 1 <= max_bytes <= 8 * 1024 * 1024:
         raise ValueError('encoding must be utf-8/base64; max_bytes must be 1..8388608')
     quoted = phone_path(path)
-    raw = adb('exec-out', 'su -c ' + shlex.quote(f'head -c {max_bytes + 1} -- {quoted}'), binary=True)
+    if getattr(os,'geteuid',lambda:0)()!=0:
+        from file_ops import safe
+        with safe(path).open('rb') as source:raw=source.read(max_bytes+1)
+    else:raw = adb('exec-out', 'su -c ' + shlex.quote(f'head -c {max_bytes + 1} -- {quoted}'), binary=True)
     return {'path': path, 'encoding': encoding, 'content': base64.b64encode(raw[:max_bytes]).decode() if encoding == 'base64' else raw[:max_bytes].decode('utf-8', 'replace'), 'truncated': len(raw) > max_bytes}
 
 def phone_write_file(path: str, content: str, encoding: str='utf-8') -> dict:
-    """Write a user-requested phone file atomically with root; existing file metadata is preserved when possible. Can overwrite any writable device file."""
+    """Atomically write a requested file within the selected runtime's permissions."""
     destination = phone_path(path)
     if encoding not in ('utf-8', 'base64'):
         raise ValueError('encoding must be utf-8/base64')
     data = base64.b64decode(content, validate=True) if encoding == 'base64' else content.encode('utf-8')
     if len(data) > 8 * 1024 * 1024:
         raise ValueError('Maximum write size is 8 MiB; use root_shell for larger files')
+    if getattr(os,'geteuid',lambda:0)()!=0:
+        from file_ops import safe,signature
+        from path_locks import hold
+        with hold([path]):
+            target=safe(path);before=signature(target)
+            mode=target.stat().st_mode&0o777 if before is not None else 0o600
+            fd,name=tempfile.mkstemp(prefix='.relaykite-write-',dir=target.parent)
+            try:
+                with os.fdopen(fd,'wb') as output:output.write(data);output.flush();os.fsync(output.fileno())
+                os.chmod(name,mode)
+                if signature(target)!=before:raise RuntimeError('Target changed during atomic write')
+                os.replace(name,target)
+            finally:Path(name).unlink(missing_ok=True)
+        return {'path':path,'bytes_written':len(data),'sha256':hashlib.sha256(data).hexdigest()}
     remote = '/data/local/tmp/owner-mcp-write-' + uuid.uuid4().hex
     staged = path + '.owner-mcp-' + uuid.uuid4().hex
     staged_q = phone_path(staged)
@@ -613,7 +635,10 @@ def project_graph_path(source: str, target: str) -> dict:
 
 
 def tool_definitions() -> list[dict]:
-    return json.loads((BASE/'tool-definitions.json').read_text(encoding='utf-8'))
+    from managed_tools import definitions
+    existing=json.loads((BASE/'tool-definitions.json').read_text(encoding='utf-8'))
+    managed=definitions();names={d['name'] for d in managed}
+    return [d for d in existing if d['name'] not in names]+managed
 
 
 def validate_schema(value, schema: dict, name: str='arguments') -> None:
@@ -710,8 +735,10 @@ def dispatch(tool: str, arguments: dict) -> dict:
         validate_schema(arguments,allowed[tool]['inputSchema'])
         function=globals()[tool]
         inspect.signature(function).bind(**arguments)
-        context = None if tool.startswith('phone_memory_') else operational_memory_context(tool, arguments)
-        result=function(**arguments)
+        context = None if tool.startswith('phone_memory_') or tool in MANAGED_OPERATIONS else operational_memory_context(tool, arguments)
+        from path_locks import hold
+        file_paths=[arguments[key] for key in ('path','source','destination') if isinstance(arguments.get(key),str)]
+        with hold(file_paths):result=function(**arguments)
         if tool.startswith('phone_use_'):return result
         if context is not None:
             receipt = remember_write_evidence(tool, arguments, result)

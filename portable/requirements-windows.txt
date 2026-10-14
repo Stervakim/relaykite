@@ -1,0 +1,3 @@
+pywinauto==0.6.9
+Pillow>=11,<13
+psutil>=6,<8

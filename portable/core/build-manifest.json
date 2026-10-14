@@ -1,0 +1,13 @@
+{
+  "source_origin": "Recovered owner project 2026-10-10/new-chat-9; reviewed display parameters and per-request inspector display",
+  "r8_sha256": "cd849dec47fe15ff349199162d7a6caaffd8548703fcb167d5c450afe8b67180",
+  "sources": {
+    "DisplayEngine.java": "128cbc76157042e8e5cbcd5829f8e5ea313b9c2a5cd5528ab0e7e2940c160274",
+    "PortableUiTest.java": "7ff2e9e12b18da8517dd5b3a288d1f17a23e42d1048b27ce975cf9070394dfb1",
+    "VirtualUiTest.java": "538edfa3e57f7af8ca9d8361661d2ecff329d04d5717b58b4f72c5f752de2b57"
+  },
+  "jars": {
+    "display-engine.jar": "d82ba4e167a31d58c79c87f741179db11a9a7a0e1f7244b6792b0c3014a30b68",
+    "ui-v2.jar": "5367560f7f4cb3092ec11718b7caa8156e3dcdab711fc4a6d4aaa063febb3f87"
+  }
+}

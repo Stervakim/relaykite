@@ -5,6 +5,20 @@ on:
 permissions:
   contents: read
 jobs:
+  portable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - run: PYTHONPATH=portable/src python -m unittest discover -s portable/tests -p 'test_*.py'
+      - run: node --test portable/cloud/tests/sites.test.mjs
   python:
     runs-on: ubuntu-latest
     steps:
@@ -15,12 +29,13 @@ jobs:
         with:
           python-version: '3.14'
       - run: python -m unittest discover -s agent -p 'test_*.py'
+      - run: python -m unittest discover -s pc -p 'test_*.py'
       - run: python -m unittest discover -s tests -p '*.py'
       - run: python scripts/build_release.py
       - run: python pc/package_release.py
       - run: python tests/test_release_safety.py --scan .
-      - run: python tests/test_release_safety.py --scan dist/mini-codex-magisk-0.2.4.zip
-      - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-chatgpt-0.2.4.zip
+      - run: python tests/test_release_safety.py --scan dist/mini-codex-magisk-0.2.5.zip
+      - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-chatgpt-0.2.5.zip
   relay:
     runs-on: ubuntu-latest
     defaults:
@@ -42,8 +57,8 @@ jobs:
       - run: npx tsc --noEmit
       - run: npm run build
   release:
-    needs: [python, relay]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [python, relay, portable]
+    if: github.event_name == 'push' && github.ref == 'refs/tags/v0.2.5'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -59,22 +74,18 @@ jobs:
           python-version: '3.14'
       - run: python scripts/build_release.py
       - run: python pc/package_release.py
-      - run: python tests/test_release_safety.py --scan dist/mini-codex-magisk-0.2.4.zip
-      - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-chatgpt-0.2.4.zip
-      - run: python tests/test_release_safety.py --scan dist/mini-codex-pc-0.2.4.zip
-      - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-pc-chatgpt-0.2.4.zip
-      - name: Publish verified RelayKite 0.2.4 release
+      - run: python tests/test_release_safety.py --scan dist/mini-codex-magisk-0.2.5.zip
+      - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-chatgpt-0.2.5.zip
+      - run: python tests/test_release_safety.py --scan dist/mini-codex-pc-0.2.5.zip
+      - run: python tests/test_release_safety.py --scan dist/codaki-mini-codex-pc-chatgpt-0.2.5.zip
+      - name: Stage RelayKite 0.2.5 release packages
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view v0.2.4 >/dev/null 2>&1; then
-            printf "%s\n" "$GITHUB_SHA" > dist/SOURCE_COMMIT.txt
-            gh release upload v0.2.4 dist/mini-codex-magisk-0.2.4.zip dist/codaki-mini-codex-chatgpt-0.2.4.zip dist/mini-codex-pc-0.2.4.zip dist/codaki-mini-codex-pc-chatgpt-0.2.4.zip dist/SHA256SUMS dist/SOURCE_COMMIT.txt --clobber
-            cp CHANGELOG.md dist/release-notes.md
-            printf "\nMaintenance assets rebuilt from source commit %s. The original release tag is retained.\n" "$GITHUB_SHA" >> dist/release-notes.md
-            gh release edit v0.2.4 --title 'RelayKite 0.2.4 — Let ChatGPT use your devices' --notes-file dist/release-notes.md
-          else
-            gh release create v0.2.4 dist/mini-codex-magisk-0.2.4.zip dist/codaki-mini-codex-chatgpt-0.2.4.zip dist/mini-codex-pc-0.2.4.zip dist/codaki-mini-codex-pc-chatgpt-0.2.4.zip dist/SHA256SUMS \
-              --target "$GITHUB_SHA" --title 'RelayKite 0.2.4 — Let ChatGPT use your devices' --notes-file CHANGELOG.md
+          if ! gh release view v0.2.5 >/dev/null 2>&1; then
+            gh release create v0.2.5 dist/mini-codex-magisk-0.2.5.zip dist/codaki-mini-codex-chatgpt-0.2.5.zip dist/mini-codex-pc-0.2.5.zip dist/codaki-mini-codex-pc-chatgpt-0.2.5.zip dist/SHA256SUMS \
+              --verify-tag --draft --title 'RelayKite 0.2.5 — Let ChatGPT use your devices' --notes-file CHANGELOG.md
           fi
+          # Verify the signed APK, Portable package and final acceptance report
+          # before the owner-authorized final publication of this draft.

@@ -5,14 +5,16 @@ from pathlib import Path
 
 CAP=5*1024**3
 ENGINE='tencentdb-original-external'
-DEFAULT_CONFIG=Path('/data/adb/mini-codex/memory-service.json')
+from runtime_paths import BASE
+DEFAULT_CONFIG=BASE/'memory-service.json'
 class MemoryUnavailable(RuntimeError):pass
 
 def allocated_bytes(path:Path)->int:
-    if not path.exists():return 0
     if path.is_symlink():raise ValueError('Storage symlink rejected')
+    if not path.exists():return 0
     if path.is_file():
         s=path.stat();return getattr(s,'st_blocks',0)*512 or s.st_size
+    if not path.is_dir():return 0  # IPC sockets/FIFOs do not contain stored records.
     return sum(allocated_bytes(p) for p in path.iterdir())
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -24,6 +26,8 @@ class MemoryBridge:
         if not configuration.exists():return
         if configuration.is_symlink():raise ValueError('Memory configuration symlink rejected')
         self.config=json.loads(configuration.read_text(encoding='utf-8'))
+        reserve=self.config.get('external_reserved_bytes',0)
+        if type(reserve)!=int or not 0<=reserve<CAP:raise ValueError('Invalid external storage reservation')
         u=urllib.parse.urlsplit(self.config.get('url',''))
         if u.scheme!='http' or u.hostname!='127.0.0.1' or u.username or u.password or u.query or u.fragment or u.path not in ('','/') or not u.port:
             raise ValueError('Memory service must use a fixed loopback URL')
@@ -51,7 +55,7 @@ class MemoryBridge:
         return data
     def save(self,title:str,content:str,tags:list,memory:dict|None=None)->dict:
         roots=[Path(p) for p in self.config.get('accounting_roots',[])]
-        if sum(allocated_bytes(p) for p in roots)+len(content.encode())*8+65536>CAP:raise ValueError('Combined Codaki storage quota exceeded')
+        if self.config.get('external_reserved_bytes',0)+sum(allocated_bytes(p) for p in roots)+len(content.encode())*8+65536>CAP:raise ValueError('Combined Codaki storage quota exceeded')
         p={'title':title,'content':content,'tags':tags}
         if memory is not None:p['memory']=memory
         return self.request('/save',p)

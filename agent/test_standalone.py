@@ -46,7 +46,7 @@ class StandaloneTests(unittest.TestCase):
             self.assertEqual(result['notes_count'],1)
             self.assertEqual(result['archive_count'],1)
             self.assertEqual(result['max_bytes']+result['agent_reserve_bytes'],5*1024**3)
-            self.assertEqual(result['agent_reserve_bytes'],16*1024*1024)
+            self.assertEqual(result['agent_reserve_bytes'],32*1024*1024)
             self.assertLess(result['bytes'],1024*1024)
 
     def test_memory_hot_limit_and_bounded_archive_search(self):

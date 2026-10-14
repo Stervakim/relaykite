@@ -10,8 +10,7 @@ import stat
 import tempfile
 import urllib.parse
 
-BASE = Path('/data/adb/mini-codex')
-MODULE = Path('/data/adb/modules/mini_codex')
+from runtime_paths import BASE,MODULE
 
 
 def safe_path(path):

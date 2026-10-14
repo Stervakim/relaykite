@@ -160,3 +160,15 @@ test('Portable validates before queue and queued PC cancellation cannot stop run
   f.context.user={userId:'foreign',email:'other@example.test'};await assert.rejects(f.invoke('mini_pc_cancel',{connection_id:link.id,job_id:job.job_id}));
  }finally{f.close();}
 });
+
+test('summary evidence status is kept separate from the completed queue receipt',async()=>{
+ const f=await fixture();try{
+  const link=await f.pair();await f.bridge.api(f.request(link.token),{action:'next'});
+  const job=await f.invoke('mini_pc_call',{connection_id:link.id,tool:'pc_memory_summarize',arguments:{events:[]},request_id:'summary-result-contract'});
+  await f.bridge.api(f.request(link.token),{action:'next'});
+  const proposal={available:true,status:'proposed',summary:'Retained source facts',source_records:[{id:'a'.repeat(64),version:2}]};
+  await f.bridge.api(f.request(link.token),{action:'result',job_id:job.job_id,status:'completed',result:proposal});
+  const receipt=await f.invoke('mini_pc_result',{connection_id:link.id,job_id:job.job_id});
+  assert.equal(receipt.status,'completed');assert.deepEqual(receipt.result,proposal);
+ }finally{f.close();}
+});

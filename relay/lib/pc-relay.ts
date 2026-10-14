@@ -9,6 +9,8 @@ const db = () => (env as unknown as { DB: D1Database }).DB;
 export const capabilities = ["terminal", "files_read", "files_write", "codex"];
 export const pcOperations: Record<string, string | null> = { pc_status: null, pc_terminal: "terminal", pc_read_file: "files_read", pc_write_file: "files_write", pc_list_files: "files_read", pc_codex: "codex" };
 for(const tool of portableDefinitions)pcOperations[tool.name]='terminal';
+pcOperations.pc_memory_summarize=null; // Fixed local model; no command or filesystem arguments.
+pcOperations.pc_memory_model_remove=null; // Only this owner's recorded optional model; no path arguments.
 const result = (value: unknown) => ({ content: [{ type: "text", text: JSON.stringify(value) }], isError: false });
 function portableResult(value:any):any {
   if(!value?.structuredContent || !Array.isArray(value.content))return result(value);
@@ -88,7 +90,12 @@ export async function list(user: string) {
 export async function jobResult(link: Link, id: string) {
   const job = await db().prepare("SELECT * FROM pc_jobs WHERE link_id=? AND id=?").bind(link.id, id).first<Job>();
   if (!job) throw new Error("Job not found or expired; inspect PC state before retrying");
-  if (job.result) return { ...JSON.parse(job.result), job_id: job.id, status: job.state };
+  if (job.result) {
+    const value=JSON.parse(job.result);
+    // Evidence status (proposed) must not be overwritten by queue status.
+    if(job.tool.startsWith('pc_memory_'))return {result:value,job_id:job.id,status:job.state};
+    return { ...value, job_id: job.id, status: job.state };
+  }
   if(job.state==='cancelled')return {job_id:job.id,status:'cancelled',executed:false};
   return { job_id: job.id, status: job.state, expires_at: job.expires_at, instruction: "Poll this job ID. Never resubmit a command with an uncertain outcome." };
 }

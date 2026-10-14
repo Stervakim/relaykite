@@ -17,4 +17,6 @@ Use the client's supported plugin edit/update/import operation to replace the ex
 
 For a card-only update, keep the phone untouched. When the owner requests the full installer update, read the matching INSTALL_WITH_CODEX.md and preserve the current private relay, phone credentials, memory, journal and deliberate runtime workarounds. Follow the existing authorized installation channel and backup behavior; do not provision a new server for a working upgrade. Verify the phone runtime version separately from the package/card version. Test the connected plugin's status and report card update, phone update and remote round trip separately. An unavailable runtime connection does not justify replaying an uncertain action.
 
+Adding the optional local phone model during an update requires an explicit choice for this installation. Codex MUST ask whether to install the model and wait for the owner's answer before downloading weights or installing its APK. A general request to update the plugin is not permission. Preserve an already installed model on an ordinary update; do not reinstall deleted weights without a new explicit choice. See setup for the question, resource disclosure and battery policy; see remove for cleanup.
+
 Example owner request: «Обнови этот плагин из нового ZIP, сохрани подключение моего телефона, ключи и память».

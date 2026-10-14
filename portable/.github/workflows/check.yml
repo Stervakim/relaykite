@@ -1,0 +1,27 @@
+name: Check Portable changes
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - run: javac -version
+      - run: python -m unittest discover -s tests -p 'test_*.py'
+        env:
+          PYTHONPATH: src
+      - run: node --test cloud/tests/sites.test.mjs
+      - run: python scripts/build_module.py --output dist/codaki-portable-use-0.1.4-android.zip
+      - run: python scripts/build_release.py --output dist/codaki-portable-use-0.1.4-full.zip

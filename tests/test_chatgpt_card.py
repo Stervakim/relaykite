@@ -61,6 +61,10 @@ class ChatGPTCardTests(unittest.TestCase):
             import shutil
             staged=Path(tmp)/'repo';staged.mkdir()
             for name in ('agent','magisk','chatgpt'):shutil.copytree(ROOT/name,staged/name)
+            for source in package.EXTRA_AGENT_INPUTS.values():
+                (staged/source).parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(ROOT/source,staged/source)
+            provenance=staged/'device-runtime/artifacts';provenance.mkdir(parents=True)
+            shutil.copyfile(ROOT/'device-runtime/artifacts/provider-manifest.json',provenance/'provider-manifest.json')
             shutil.copyfile(ROOT/'LICENSE',staged/'LICENSE')
             installer=package.build(staged)
             checksum_path=staged/'dist/SHA256SUMS'

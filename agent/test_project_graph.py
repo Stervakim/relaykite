@@ -7,8 +7,16 @@ from networkx.readwrite import json_graph
 from graphify.serve import _query_graph_text, _read_graph
 sys.path.insert(0,str(Path(__file__).parent))
 from project_graph import ProjectGraph
+from unittest.mock import patch
 
 class GraphTests(unittest.TestCase):
+ def test_private_source_mirror_is_checked_after_mode_path_remapping(self):
+  with tempfile.TemporaryDirectory() as d:
+   g,_=self.fixture(d);p=Path(d);mirror=p/'project-source/codaki/portable/engine.py';mirror.parent.mkdir(parents=True);mirror.write_text('owned source')
+   m=json.loads((p/'manifest.json').read_text());m['sources']={'@base/project-source/codaki/portable/engine.py':hashlib.sha256(mirror.read_bytes()).hexdigest()};(p/'manifest.json').write_text(json.dumps(m))
+   with patch('project_graph.BASE',p):
+    self.assertFalse(g.query('entry')['stale'])
+    mirror.write_text('new source');self.assertTrue(g.query('entry')['stale'])
  def fixture(self,d):
   p=Path(d);G=nx.DiGraph()
   G.add_node('entry',label='entry',type='function',source_file='agent/main.py',source_location='L1')

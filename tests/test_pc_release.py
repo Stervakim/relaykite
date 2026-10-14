@@ -23,7 +23,7 @@ class PCReleaseTests(unittest.TestCase):
             self.assertEqual(public.read_bytes(), (ROOT/'pc/chatgpt'/public.name).read_bytes())
             with zipfile.ZipFile(public) as archive:
                 self.assertEqual(json.loads(archive.read('.app.json')), {'apps': {}})
-                self.assertEqual(json.loads(archive.read('plugin.json'))['version'], '0.2.4')
+                self.assertEqual(json.loads(archive.read('plugin.json'))['version'], '0.2.5')
                 self.assertIn('skills/pc-control/SKILL.md', archive.namelist())
             private = card.build_card(ROOT/'pc', Path(tmp)/'private', 'asdk_app_fixture')
             self.assertEqual(card.previous_app_id(private, 'codaki-mini-codex-pc'), 'asdk_app_fixture')
@@ -43,7 +43,7 @@ class PCReleaseTests(unittest.TestCase):
                 self.assertIn('relay/drizzle/0001_hesitant_raza.sql',archive.namelist())
                 self.assertIn('mini_codex_pc.py',archive.namelist())
                 self.assertNotIn('config.json',archive.namelist())
-                nested='chatgpt/codaki-mini-codex-pc-chatgpt-0.2.4.zip'
+                nested='chatgpt/codaki-mini-codex-pc-chatgpt-0.2.5.zip'
                 self.assertEqual(archive.read(nested),(ROOT/'pc/chatgpt'/Path(nested).name).read_bytes())
                 self.assertNotIn(b'DO_NOT_BUNDLE',b''.join(archive.read(p) for p in archive.namelist()))
             for line in (staged/'dist/SHA256SUMS').read_text().splitlines():

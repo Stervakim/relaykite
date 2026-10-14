@@ -21,7 +21,7 @@ import urllib.request
 import native_phone
 from network_route import choose_proxy
 
-MAX_JOURNAL=5*1024*1024
+MAX_JOURNAL=16*1024*1024
 MAX_RESULT=4*1024*1024-8192
 RESULT_RETENTION_SECONDS=900
 
@@ -253,6 +253,10 @@ def run_agent(config:dict,state:Path):
     os.chmod(state/'agent.log',0o600)
     relay=Relay(config)
     journal=Journal(state)
+    from managed_tools import start as start_managed, stop as stop_managed
+    managed=start_managed(state,native_phone.dispatch)
+    from summary_worker import SummaryPump
+    summaries=SummaryPump(Relay(config),state.parent);summaries.start()
     disable_file=Path(config['disable_file']) if config.get('disable_file') else None
     stop=False
     def terminate(*_):
@@ -290,6 +294,8 @@ def run_agent(config:dict,state:Path):
                 if disabled(): break
                 time.sleep(.1)
     finally:
+        summaries.close()
+        stop_managed(managed)
         journal.db.close()
         logger.info('Agent stopped; no further jobs will execute')
         logger.removeHandler(handler)

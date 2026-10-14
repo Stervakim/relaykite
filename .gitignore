@@ -16,3 +16,6 @@ logs/
 *.db
 *.pem
 *.key
+device-runtime/artifacts/*.apk
+device-runtime/artifacts/*.idsig
+device-runtime/fixtures/artifacts/

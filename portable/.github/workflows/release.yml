@@ -1,0 +1,43 @@
+name: Publish versioned package
+on:
+  push:
+    branches: [main]
+    paths: [VERSION]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify regression tests
+        env:
+          PYTHONPATH: src
+        run: |
+          javac -version
+          python -m unittest discover -s tests -p 'test_*.py'
+          node --test cloud/tests/sites.test.mjs
+      - name: Build versioned packages from tested source
+        run: |
+          VERSION="$(cat VERSION)"
+          python scripts/build_module.py --output "dist/codaki-portable-use-$VERSION-android.zip"
+          python scripts/build_release.py --output "dist/codaki-portable-use-$VERSION-full.zip"
+          (cd dist && sha256sum -c SHA256SUMS)
+          python -c "import pathlib,zipfile; v=pathlib.Path('VERSION').read_text().strip(); z=zipfile.ZipFile('dist/codaki-portable-use-'+v+'-android.zip'); assert 'version='+v in z.read('module.prop').decode(); assert v in z.read('runtime/portable/__init__.py').decode(); assert b'other.observation=None' in z.read('runtime/portable/windows_sessions.py'); assert z.testzip() is None"
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(cat VERSION)"
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists; leaving it unchanged."
+          else
+            gh release create "v$VERSION" --target "$GITHUB_SHA" --title "Codaki Portable Use $VERSION" --notes-file docs/RELEASE_NOTES.md "dist/codaki-portable-use-$VERSION-full.zip" "dist/codaki-portable-use-$VERSION-android.zip" dist/SHA256SUMS CODEX_INSTALL.md
+          fi

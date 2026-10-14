@@ -1,19 +1,19 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "codaki-mini-codex",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Управление своим Android, файлами и системными задачами через личный сервер.",
   "author": {
     "name": "Codaki contributors"
   },
-  "repository": "https://github.com/kalabuxova1-hash/codaki-mini-codex",
+  "repository": "https://github.com/Stervakim/relaykite",
   "license": "MIT",
   "extensions": {
     "com.openai": {
       "apps": "./.app.json",
       "onboardingSkill": "./skills/setup/SKILL.md",
       "interface": {
-        "displayName": "Codaki Mini Codex — телефон",
+        "displayName": "RelayKite — телефон",
         "shortDescription": "Управление своим Android, файлами и системными задачами через личный сервер.",
         "longDescription": "Управление своим Android, файлами и системными задачами через личный сервер. Установка карточки и подключение личного телефона выполняются отдельно.",
         "developerName": "Codaki",
@@ -22,9 +22,9 @@
           "Read",
           "Write"
         ],
-        "websiteURL": "https://github.com/kalabuxova1-hash/codaki-mini-codex",
+        "websiteURL": "https://github.com/Stervakim/relaykite",
         "defaultPrompt": [
-          "Помоги настроить мой телефон для Codaki Mini Codex — телефон."
+          "Помоги настроить мой телефон для RelayKite — телефон."
         ],
         "brandColor": "#6EF0BA",
         "composerIcon": "./assets/icon.png",
