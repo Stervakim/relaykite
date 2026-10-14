@@ -3,7 +3,7 @@
 The app's private request file can select three fixed modes or stop. It cannot
 supply a command, executable, credential, path or Android input to this broker.
 """
-import hashlib,json,os,signal,socket,sqlite3,stat,struct,subprocess,sys,time,uuid
+import hashlib,json,os,re,signal,socket,sqlite3,stat,struct,subprocess,sys,time,uuid
 from pathlib import Path
 from contextlib import closing
 from mode_coordinator import Coordinator,MODES
@@ -42,6 +42,11 @@ def terminate_receipt(receipt,allowed):
         while matches() and time.monotonic()<until:time.sleep(.1)
         if matches():raise RuntimeError('Owned process did not stop')
 
+def owned_app_worker(uid,args,expected_uid):
+    if uid!=expected_uid or len(args)!=2 or Path(args[0]).name!='librelaykite_python.so':return False
+    script=Path(args[1])
+    return script.name=='app_worker.py' and script.parent.name=='agent' and script.parent.parent.parent==APPFILES and re.fullmatch(r'runtime-[a-f0-9]{24}',script.parent.parent.name) is not None
+
 class Backend:
     def __init__(self,runtime,uid):
         self.runtime=runtime.resolve();self.uid=uid;self.child=None
@@ -58,6 +63,20 @@ class Backend:
     def stop(self,mode):
         # Stop an APK worker first even if it was only waiting for config.
         android('stopservice','-n','org.relaykite.runtime/.WorkerService')
+        # OEM freezing can prevent the Java service's onDestroy from running.
+        # Reap only our exact app-UID worker generation, never its whole UID.
+        for proc in Path('/proc').glob('[0-9]*/cmdline'):
+            try:
+                args=[os.fsdecode(a) for a in proc.read_bytes().split(b'\0') if a]
+                pid=int(proc.parent.name);born=generation(pid)
+                if born is None or not owned_app_worker(proc.parent.stat().st_uid,args,self.uid):continue
+                def matches():
+                    try:return generation(pid)==born and owned_app_worker(proc.parent.stat().st_uid,[os.fsdecode(a) for a in proc.read_bytes().split(b'\0') if a],self.uid)
+                    except (FileNotFoundError,ProcessLookupError):return False
+                os.kill(pid,signal.SIGTERM);until=time.monotonic()+(30 if (APP/'enabled').exists() else 3)
+                while matches() and time.monotonic()<until:time.sleep(.1)
+                if matches():os.kill(pid,signal.SIGKILL)
+            except (FileNotFoundError,ProcessLookupError):pass
         if self.child is not None:
             if self.child.poll() is None:terminate_receipt(self.receipt(self.child),{0})
             self.child.wait(timeout=5);self.child=None

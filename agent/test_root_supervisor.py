@@ -5,6 +5,13 @@ from contextlib import closing
 import root_supervisor as root
 
 class RootSupervisorTests(unittest.TestCase):
+    def test_frozen_app_cleanup_requires_exact_owned_uid_runtime_and_executable(self):
+        args=['/owned/librelaykite_python.so',str(root.APPFILES/('runtime-'+'a'*24)/'agent/app_worker.py')]
+        self.assertTrue(root.owned_app_worker(10515,args,10515))
+        self.assertFalse(root.owned_app_worker(2000,args,10515))
+        self.assertFalse(root.owned_app_worker(10515,['/owned/unrelated',args[1]],10515))
+        self.assertFalse(root.owned_app_worker(10515,[args[0],'/unrelated/runtime-'+('a'*24)+'/agent/app_worker.py'],10515))
+        self.assertFalse(root.owned_app_worker(10515,args+['extra'],10515))
     @unittest.skipIf(os.name=='nt','Kernel UNIX peer identity is checked on Android/POSIX')
     def test_readiness_requires_recorded_live_peer_and_selected_mode(self):
         with tempfile.TemporaryDirectory() as tmp:
