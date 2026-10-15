@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
@@ -12,7 +13,18 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'agent'))
 sys.path.insert(0, str(ROOT / 'pc'))
 import native_phone
+import development_tools
 from development import client
+
+
+class RootOwnedFixturePath(type(Path())):
+    """Represent Android root-owned fixtures without requiring host root."""
+    fixture_uid = 0
+
+    def stat(self, *, follow_symlinks=True):
+        values = list(super().stat(follow_symlinks=follow_symlinks))
+        values[4] = self.fixture_uid
+        return os.stat_result(values)
 
 
 class PhoneDevelopmentTests(unittest.TestCase):
@@ -32,9 +44,19 @@ class PhoneDevelopmentTests(unittest.TestCase):
             (self.engine / name).write_text('local test executable', encoding='utf8')
             (self.engine / name).chmod(0o755)
         self.patches = [patch.object(native_phone, 'SUPPORT_BASE', self.base),
+                        patch.object(development_tools, 'Path', RootOwnedFixturePath),
                         patch.object(native_phone, 'runtime_identity', return_value={'mode':'root','uid':0,'root_active':True}),
                         patch('development.supervisor.execution_profile', return_value={'policy':'android-root'})]
         for entry in self.patches: entry.start(); self.addCleanup(entry.stop)
+
+    def test_non_root_engine_and_policy_are_rejected_on_android(self):
+        android_os = SimpleNamespace(name='posix', environ=os.environ)
+        with patch.object(development_tools, 'os', android_os), \
+                patch.object(RootOwnedFixturePath, 'fixture_uid', 10001):
+            with self.assertRaisesRegex(PermissionError, 'root-owned'):
+                development_tools.engine_environment(self.base)
+            with self.assertRaisesRegex(PermissionError, 'root-owned'):
+                development_tools.selected_workspace(self.base, str(self.workspace))
 
     def call(self, **kwargs):
         function = getattr(native_phone, 'phone_development', None)

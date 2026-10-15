@@ -30,14 +30,15 @@ Verified on Redmi Turbo 3, Android 17, Magisk, embedded Python/Node:
   reboot the system table check and APK installation succeeded. No platform
   security check was disabled.
 
-Host checks: 215 repository tests (two skipped), 124 agent tests (ten skipped),
+Host checks: 216 repository tests (two skipped), 124 agent tests (ten skipped),
 three PC tests, 131 Portable tests (three skipped), 22 relay tests, relay build
 and TypeScript checks passed. The repository count excludes opt-in live tests;
 real-device acceptance is recorded separately above.
 
 Reviewed regression fixes: per-request model reply binding; installer activation
 only after policy preparation; durable legacy relay origin; app-owned runtime
-files; Portable input rejection after checked/selected/actions/scrollability
+files; explicit rejection of non-root-owned engine/policy in platform-independent
+Android fixtures; Portable input rejection after checked/selected/actions/scrollability
 changes. The final installed APK contains the runtime fixes.
 
 Public phone/PC plugin archives include autonomous routing instructions and the
