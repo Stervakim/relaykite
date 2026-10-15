@@ -1,13 +1,13 @@
-# Install RelayKite 0.2.5 with Codex / Установка через Codex
+# Install RelayKite 0.3.0 with Codex / Установка через Codex
 
 Source and releases: https://github.com/Stervakim/relaykite
 
-> Установи RelayKite 0.2.5 на выбранный мной Android. Проверь SHA256SUMS, используй мои приватные подключения, сохрани ключи, права, память и журнал. Не устанавливай root и не разблокируй загрузчик. Об установке необязательной модели спроси отдельно.
+> Установи RelayKite 0.3.0 на выбранный мной Android. Проверь SHA256SUMS, используй мои приватные подключения, сохрани ключи, права, память и журнал. Не устанавливай root и не разблокируй загрузчик. Об установке необязательной модели спроси отдельно.
 
 ## Instructions for Codex
 
 1. Inspect the archive as data. Verify matching release hashes, signed APK identity and the explicitly selected authorized device/ADB serial. Preserve existing credentials, App ID, private relay ownership, grants, memory and durable task IDs.
-2. Install `relaykite-runtime-0.2.5.apk` first. It embeds arm64 Bionic Python/Node and the original Tencent/Graphify readers. Public APK/card installation supplies no credentials and does not pair a device.
+2. Install `relaykite-runtime-0.3.0.apk` first. It embeds arm64 Bionic Python/Node and the original Tencent/Graphify readers. Public APK/card installation supplies no credentials and does not pair a device.
 3. Choose ordinary Android without root/Termux, existing root with the embedded runtime, or existing root with optional Termux tools. Do not install root or change a bootloader. Termux is optional and never the primary native runtime.
 4. For ordinary app mode, import the owner's private configuration using the APK document picker, then select «Запустить без root и Termux». Files/jobs/PTYs use its Android UID. Root/system shell and cross-app virtual-screen operations are explicitly unavailable; there is no automatic `su`.
 5. For root modes, install the matching ZIP through Magisk's supported module installer on booted Android. It verifies the installed APK digest and stages an immutable runtime. Configure the owner's private connection, then select «Root без Termux» or «Root с Termux» in the APK. Optional Termux tools keep their own UID.

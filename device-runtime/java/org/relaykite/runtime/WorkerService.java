@@ -35,7 +35,7 @@ public final class WorkerService extends Service {
         PendingIntent stopAction=PendingIntent.getService(this,2,stop,PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
         PendingIntent open=PendingIntent.getActivity(this,1,new Intent(this,RuntimeActivity.class),PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
         Notification notification=new Notification.Builder(this,"relaykite-worker").setSmallIcon(android.R.drawable.stat_sys_upload)
-            .setContentTitle("RelayKite 0.2.5").setContentText("Режим без root и Termux").setContentIntent(open).setOngoing(true)
+            .setContentTitle("RelayKite 0.3.0").setContentText("Режим без root и Termux").setContentIntent(open).setOngoing(true)
             .addAction(new Notification.Action.Builder(null,"Остановить",stopAction).build()).build();
         if(Build.VERSION.SDK_INT>=34)startForeground(25,notification,ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);else startForeground(25,notification);
         registerReceiver(battery,new IntentFilter(Intent.ACTION_BATTERY_CHANGED));

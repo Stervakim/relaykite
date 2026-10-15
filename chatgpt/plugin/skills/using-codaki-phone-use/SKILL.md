@@ -26,7 +26,7 @@ Stop the session this task created with `phone_use_session_stop` when finished.
 Android Portable 0.1.4 supports up to three owned nonzero virtual displays.
 Read live capabilities and preserve each session's own observations and lease.
 Physical input remains serialized, and app data remains shared. Cross-app
-virtual screens require the explicitly selected root mode. RelayKite 0.2.5
+virtual screens require the explicitly selected root mode. RelayKite 0.3.0
 uses its signed embedded Python/Node runtime without Termux; root+Termux
 only adds optional tools under the separate Termux UID. Ordinary app mode
 offers its own-permission files, jobs, memory and PTYs, and denies root.

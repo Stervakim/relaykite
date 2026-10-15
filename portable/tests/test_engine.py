@@ -45,6 +45,19 @@ class EngineTests(unittest.TestCase):
         o=self.observe();a={'kind':'click','selector':{'node_id':'7/1'}}
         first=self.act(o,a,'same_request_01');second=self.act(o,a,'same_request_01')
         self.assertEqual(first,second);self.assertEqual(len(self.b.actions),1)
+
+    def test_changed_toggle_selection_or_action_capability_cannot_rebase_old_input(self):
+        import copy
+        from portable.engine import stable_action_target
+        before={'geometry':{'width':720,'height':1280},'windows':[{'window_id':'7','focused':True}],
+                'nodes':[{'node_id':'7/1','resource_id':'toggle','role':'Switch','text':'Enabled',
+                          'bounds':[0,0,100,80],'enabled':True,'visible':True,'checked':False,
+                          'selected':False,'scrollable':False,'actions':['click']}]}
+        action={'kind':'click','selector':{'resource_id':'toggle'}}
+        self.assertTrue(stable_action_target(before,copy.deepcopy(before),action))
+        for field,value in [('checked',True),('selected',True),('actions',[]),('scrollable',True)]:
+            changed=copy.deepcopy(before);changed['nodes'][0][field]=value
+            with self.subTest(field=field):self.assertFalse(stable_action_target(before,changed,action))
     def test_action_returns_updated_observation_usable_for_next_action(self):
         o=self.observe()
         receipt=self.act(o,{'kind':'set_text','selector':{'resource_id':'query'},'text':'новое'})

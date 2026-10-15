@@ -3,7 +3,7 @@
 Private keystore and password file stay outside source/releases. The builder
 does not download dependencies or change global Java/Git identity.
 """
-import argparse,hashlib,json,os,shutil,subprocess,tempfile,zipfile
+import argparse,hashlib,json,os,shutil,struct,subprocess,tempfile,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 def run(argv,env=None):subprocess.run([str(a) for a in argv],check=True,env=env)
@@ -26,7 +26,10 @@ def main():
             for f in sorted(classes.rglob('*.class')):z.write(f,f.relative_to(classes).as_posix())
         run([a.java,'-cp',a.r8,'com.android.tools.r8.D8','--release','--min-api','30','--lib',a.android_jar,'--output',dex,jar])
         aapt=a.build_tools/('aapt2.exe' if os.name=='nt' else 'aapt2');unsigned=t/'unsigned.apk'
-        run([aapt,'link','-I',platform,'--manifest',xml,'-o',unsigned])
+        resources=t/'res';shutil.copytree(source/'res',resources)
+        compiled=t/'resources.zip'
+        run([aapt,'compile','--dir',resources,'-o',compiled])
+        run([aapt,'link','-I',platform,'--manifest',xml,'-0','arsc','-o',unsigned,compiled])
         with zipfile.ZipFile(unsigned,'a') as z:
             z.write(dex/'classes.dex','classes.dex')
             if a.runtime_bundle:
@@ -38,12 +41,18 @@ def main():
                         z.writestr(name,native.read(name),compress_type=zipfile.ZIP_DEFLATED)
         aligned=t/'aligned.apk';zipalign=a.build_tools/('zipalign.exe' if os.name=='nt' else 'zipalign')
         run([zipalign,'-f','-p','4',unsigned,aligned])
-        signed=out/'relaykite-runtime-0.2.5.apk';signer=a.build_tools/'lib/apksigner.jar'
+        # Android R+ rejects compressed/misaligned resource tables at install time.
+        with zipfile.ZipFile(aligned) as archive,aligned.open('rb') as raw:
+            table=archive.getinfo('resources.arsc');raw.seek(table.header_offset+26)
+            name_size,extra_size=struct.unpack('<HH',raw.read(4))
+            if table.compress_type!=zipfile.ZIP_STORED or (table.header_offset+30+name_size+extra_size)%4:
+                raise ValueError('Android resource table must be stored and 4-byte aligned')
+        signed=out/'relaykite-runtime-0.3.0.apk';signer=a.build_tools/'lib/apksigner.jar'
         run([a.java,'-jar',signer,'sign','--ks',a.keystore,'--ks-key-alias','relaykite','--ks-pass','file:'+str(a.password_file),'--out',signed,aligned])
         run([a.java,'-jar',signer,'verify','--verbose','--print-certs',signed])
-        manifest={'version':'0.2.5','package':'org.relaykite.runtime','apk_sha256':hashlib.sha256(signed.read_bytes()).hexdigest(),
+        manifest={'version':'0.3.0','package':'org.relaykite.runtime','apk_sha256':hashlib.sha256(signed.read_bytes()).hexdigest(),
             'dex_sha256':hashlib.sha256((dex/'classes.dex').read_bytes()).hexdigest(),'r8_sha256':hashlib.sha256(a.r8.read_bytes()).hexdigest(),
-            'android_jar_sha256':hashlib.sha256(a.android_jar.read_bytes()).hexdigest(),'source_sha256':{f.relative_to(source).as_posix():hashlib.sha256(f.read_bytes()).hexdigest() for f in files+[source/'AndroidManifest.xml']}}
+            'android_jar_sha256':hashlib.sha256(a.android_jar.read_bytes()).hexdigest(),'source_sha256':{f.relative_to(source).as_posix():hashlib.sha256(f.read_bytes()).hexdigest() for f in files+[source/'AndroidManifest.xml']+sorted((source/'res').rglob('*.png'))}}
         (source/'artifacts/provider-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8',newline='\n')
         print(json.dumps({'apk':str(signed),'sha256':manifest['apk_sha256']}))
 if __name__=='__main__':main()

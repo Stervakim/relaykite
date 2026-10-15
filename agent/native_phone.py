@@ -13,6 +13,7 @@ import shlex
 import sqlite3
 import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -91,6 +92,40 @@ def phone_path(path: str) -> str:
     if not path.startswith('/') or '\x00' in path or '\n' in path:
         raise ValueError('Specify an absolute Android path without nulls/newlines')
     return shlex.quote(path)
+
+
+def phone_development(operation: str, request_id: str, arguments: dict | None=None) -> dict:
+    """The authenticated phone queue supplies this fixed owner/runtime scope."""
+    from development_tools import definition, operation_arguments, selected_workspace, engine_environment
+    from development.supervisor import execution_profile
+    from development.client import call
+    payload = {'operation':operation,'request_id':request_id,'arguments':arguments if arguments is not None else {}}
+    validate_schema(payload, definition()['inputSchema'])
+    identity = runtime_identity()
+    if identity.get('mode') != 'root' or identity.get('uid') != 0 or not identity.get('root_active'):
+        raise PermissionError('Phone development requires explicitly selected root mode; app and Termux modes never elevate')
+    execution_profile('android-root')  # Checks the actual Android system and UID.
+    local = operation_arguments(operation, payload['arguments'])
+    if operation == 'install':
+        # The existing managed PTY journal owns this long operation. No second
+        # scheduler, caller-supplied URL, path or shell fragment is introduced.
+        environment={key:os.environ[key] for key in ('PYTHONHOME','RELAYKITE_NATIVE','LD_LIBRARY_PATH','RELAYKITE_MODE','RELAYKITE_BASE','SSL_CERT_FILE') if key in os.environ}
+        environment.update(RELAYKITE_MODE='root',RELAYKITE_BASE=str(SUPPORT_BASE))
+        prefix=' '.join(key+'='+shlex.quote(value) for key,value in environment.items())
+        command=prefix+' '+shlex.quote(sys.executable)+' '+shlex.quote(str(BASE/'development_install.py'))+' --install'
+        return phone_command_start(request_id='dev_install_'+hashlib.sha256(request_id.encode()).hexdigest()[:48],
+                                   mode='root',command=command,cwd=str(SUPPORT_BASE),timeout_seconds=1800)
+    if operation == 'start':
+        local['workspace'] = selected_workspace(SUPPORT_BASE, local['workspace'])
+    try:
+        environment = engine_environment(SUPPORT_BASE)
+    except FileNotFoundError:
+        if operation != 'capabilities': raise
+        return {'ready':False,'state':'waiting_user','execution_policy':'android-root','isolation':'none',
+                'reason':'Install the owner-verified development-engine and embedded runtime before starting a task.'}
+    return call({**local,'operation':operation,'request_id':request_id}, SUPPORT_BASE,
+                scope='phone-owner', execution_policy='android-root', android_ui=True, child_env=environment)
+
 
 def coordinate(value: int) -> int:
     if not 0 <= value <= 16384:

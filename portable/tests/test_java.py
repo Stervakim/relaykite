@@ -138,6 +138,24 @@ public class Harness {
    check(nodes.get(1).get("bounds").equals(Arrays.asList(2,3,90,100)),"Bounds");check(nodes.get(2).get("text").equals(""),"Password masking");check(nodes.get(2).get("description").equals(""),"Password description masking");check(foreign.rootReads==0,"No physical root");
    String before=(String)s.get("native_fingerprint");child.value="changed";check(!before.equals(fingerprint(p)),"Native fingerprint changes with UI");
   }
+  else if(name.equals("deep_response")){
+   Node current=root;root.value="";
+   for(int depth=1;depth<=64;depth++){Node child=new Node();child.value=depth==64?"Saved chat response below Compose wrappers":"";current.children.add(child);current=child;}
+   Map<String,Object>s=p.snapshot(automation,7);List<Map<String,Object>>nodes=(List<Map<String,Object>>)s.get("nodes");
+   check(nodes.size()==65,"Nested response missing from snapshot: "+nodes.size());check(nodes.get(64).get("text").equals("Saved chat response below Compose wrappers"),"Response text lost below layout wrappers");
+   check(Boolean.FALSE.equals(s.get("truncated")),"Complete nested response marked truncated");check(p.handles.get(nodes.get(64).get("node_id"))==current,"Deep response handle missing");check(foreign.rootReads==0,"Physical root was read");
+  }
+  else if(name.equals("snapshot_depth_bound")){
+   Node current=root;
+   for(int depth=1;depth<=140;depth++){Node child=new Node();child.value="depth-"+depth;current.children.add(child);current=child;}
+   Map<String,Object>s=p.snapshot(automation,7);List<Map<String,Object>>nodes=(List<Map<String,Object>>)s.get("nodes");
+   check(nodes.size()==129,"Traversal depth bound changed: "+nodes.size());check(nodes.get(128).get("text").equals("depth-128"),"Unexpected depth boundary");check(Boolean.TRUE.equals(s.get("truncated")),"Depth limit not reported");check(p.handles.size()==129,"Handles exceed depth-limited snapshot");
+  }
+  else if(name.equals("snapshot_node_bound")){
+   for(int i=0;i<2005;i++){Node child=new Node();child.value="wide-"+i;root.children.add(child);}
+   Map<String,Object>s=p.snapshot(automation,7);List<Map<String,Object>>nodes=(List<Map<String,Object>>)s.get("nodes");
+   check(nodes.size()==2000,"Snapshot exceeded node bound: "+nodes.size());check(nodes.get(1999).get("text").equals("wide-1998"),"Unexpected node boundary");check(Boolean.TRUE.equals(s.get("truncated")),"Node limit not reported");check(p.handles.size()==2000,"Handles exceed node-limited snapshot");
+  }
   else if(name.equals("sensitive")){root.sensitive=true;List<Map<String,Object>>nodes=(List<Map<String,Object>>)p.snapshot(automation,7).get("nodes");check(nodes.get(0).get("text").equals(""),"Sensitive text escaped masking");check(nodes.get(0).get("description").equals(""),"Sensitive description escaped masking");String r=request(p,action("click"),fingerprint(p));check(r.contains("\"applied\":false"),r);check(root.calls==0,"Sensitive action occurred");}
   else if(name.equals("empty_text")){Map<String,Object>a=action("set_text");a.put("text","");String r=request(p,a,fingerprint(p));check(r.contains("\"applied\":true"),r);check(root.value.equals(""),"Empty text must clear");check(root.lastAction==2097152,"Set text action ID");}
   else if(name.equals("selection")){Map<String,Object>a=action("selection");a.put("start",1);a.put("end",3);String r=request(p,a,fingerprint(p));check(r.contains("\"applied\":true"),r);check(root.lastAction==131072,"Selection action ID");check(root.arguments.get("ACTION_ARGUMENT_SELECTION_END_INT").equals(3),"UTF16 offset must stay 3");}
@@ -195,7 +213,7 @@ class JavaReflectionTests(unittest.TestCase):
         self.assertEqual(result.stdout.strip(), 'PASS ' + name)
 
 
-for _name in ('owner_args','serve_display','roots', 'zero_roots', 'snapshot', 'sensitive', 'empty_text', 'selection', 'stale',
+for _name in ('owner_args','serve_display','roots', 'zero_roots', 'snapshot', 'deep_response', 'snapshot_depth_bound', 'snapshot_node_bound', 'sensitive', 'empty_text', 'selection', 'stale',
               'fresh_handles', 'protected', 'unknown', 'semantic_false', 'multi_touch', 'inject_zero',
               'gesture_cleanup', 'gesture_throw_cleanup', 'invalid_paths', 'invisible',
               'privacy_failure', 'zero_click_count', 'unknown_semantic', 'invalid_paths_receipt', 'request_file'):

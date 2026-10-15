@@ -1,4 +1,4 @@
-# RelayKite for Windows — 0.2.5
+# RelayKite for Windows — 0.3.0
 
 English | [Русский](README.md)
 
@@ -7,11 +7,11 @@ A background Windows worker connects ChatGPT to authorized PowerShell and file o
 ## Install
 
 1. Prepare Python 3.14+ and PowerShell. Verify that your account can use the personal plugin connection.
-2. Download `mini-codex-pc-0.2.5.zip`, `codaki-mini-codex-pc-chatgpt-0.2.5.zip` and `SHA256SUMS` from [v0.2.5](https://github.com/Stervakim/relaykite/releases/tag/v0.2.5).
+2. Download `mini-codex-pc-0.3.0.zip`, `codaki-mini-codex-pc-chatgpt-0.3.0.zip` and `SHA256SUMS` from [v0.3.0](https://github.com/Stervakim/relaykite/releases/tag/v0.3.0).
 3. Give the files to Codex and ask it to verify the checksum and follow the included `INSTALL_WITH_CODEX.md`. The installer archive also contains the plugin card under `chatgpt/`.
 4. Configure your private relay, choose allowed folders and explicitly grant the permissions you need. Verify `pc_status` and a small, authorized PowerShell command.
 
-> Install RelayKite for Windows 0.2.5 from this ZIP. Verify SHA256SUMS and read INSTALL_WITH_CODEX.md. Connect my private relay and personal plugin, configure allowed folders and PowerShell permissions, preserve existing pairings, and verify pc_status and a safe command. Set up background startup without a visible window.
+> Install RelayKite for Windows 0.3.0 from this ZIP. Verify SHA256SUMS and read INSTALL_WITH_CODEX.md. Connect my private relay and personal plugin, configure allowed folders and PowerShell permissions, preserve existing pairings, and verify pc_status and a safe command. Set up background startup without a visible window.
 
 Importing the public card alone does not register a PC or grant terminal access. Release archives and technical commands still use the previous Mini Codex names for compatibility.
 

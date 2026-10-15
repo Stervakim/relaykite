@@ -20,7 +20,7 @@ def read_package(apk,expected):
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         if len(archive.namelist())!=len(set(archive.namelist())):raise ValueError('Duplicate APK entry')
         manifest=json.loads(archive.read('assets/runtime-manifest.json'))
-        if manifest.get('version')!='0.2.5' or manifest.get('architecture')!='arm64-v8a':raise ValueError('Unsupported runtime')
+        if manifest.get('version')!='0.3.0' or manifest.get('architecture')!='arm64-v8a':raise ValueError('Unsupported runtime')
         runtime=archive.read('assets/runtime.zip')
         native={}
         for name,entry in manifest['native'].items():

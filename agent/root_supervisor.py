@@ -20,6 +20,20 @@ def system_env():
     env=os.environ.copy();env.pop('LD_LIBRARY_PATH',None);env.pop('LD_PRELOAD',None);env['PATH']='/system/bin:/system/xbin';return env
 def android(*args):
     return subprocess.run(['/system/bin/am',*args],env=system_env(),capture_output=True,text=True,timeout=15)
+def prepare_app_files(uid):
+    # An APK can be installed before its first Activity creates getFilesDir().
+    # Control files must not leave that directory owned by root and unreadable
+    # by the app. The caller obtained uid from the verified package directory.
+    if not 10000<uid<20000 or any(p.is_symlink() for p in (APPFILES,*APPFILES.parents)):
+        raise PermissionError('Unsafe owned application storage')
+    try:APPFILES.mkdir(mode=0o700)
+    except FileExistsError:
+        info=APPFILES.lstat()
+        if not stat.S_ISDIR(info.st_mode) or (os.name!='nt' and info.st_uid!=uid):
+            raise PermissionError('Application files must belong to the package UID')
+    else:
+        os.chown(APPFILES,uid,uid)
+        subprocess.run(['/system/bin/restorecon',str(APPFILES)],env=system_env(),capture_output=True,check=True,timeout=5)
 def private_json(path,value,uid=0):
     if any(p.is_symlink() for p in (path,*path.parents)):raise ValueError('Unsafe control file path')
     path.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
@@ -61,6 +75,14 @@ class Backend:
             a=json.loads((source/'config.json').read_text());b=json.loads((target/'config.json').read_text())
             if (a.get('relay_url'),a.get('agent_token'))!=(b.get('relay_url'),b.get('agent_token')):raise PermissionError('Another owner configuration must not be overwritten')
     def stop(self,mode):
+        if self.uid is None:
+            if mode!='root':raise ValueError('Headless supervisor permits only explicit root mode')
+            if self.child is not None:
+                if self.child.poll() is None:terminate_receipt(self.receipt(self.child),{0})
+                self.child.wait(timeout=5);self.child=None
+            saved=CONTROL/'root-worker.json'
+            if saved.exists():terminate_receipt(json.loads(saved.read_text()),{0});saved.unlink()
+            return
         # Stop an APK worker first even if it was only waiting for config.
         android('stopservice','-n','org.relaykite.runtime/.WorkerService')
         # OEM freezing can prevent the Java service's onDestroy from running.
@@ -153,6 +175,7 @@ class Backend:
         os.chown(target,uid,uid);target.chmod(0o700)
         if mode=='app':subprocess.run(['/system/bin/restorecon','-R',str(target)],env=system_env(),capture_output=True,check=True,timeout=15)
     def start(self,mode):
+        if self.uid is None and mode!='root':raise ValueError('Headless supervisor permits only root mode')
         base=self.base(mode)
         if mode=='app':
             (base/'enabled').touch(mode=0o600);os.chown(base/'enabled',self.uid,self.uid)
@@ -190,6 +213,41 @@ class Backend:
         except (OSError,ValueError):return False
     def reconcile(self,mode):self.stop(mode);self.start(mode)
 
+def headless_authorized():
+    flag=CONTROL/'headless-root-enabled'
+    if not flag.exists():return False
+    for path,directory in ((CONTROL,True),(flag,False)):
+        info=path.lstat()
+        if path.is_symlink() or info.st_uid!=0 or info.st_mode&0o077 or not (stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)):
+            raise PermissionError('Headless root consent must be root-owned and private')
+    return True
+
+def headless_main(runtime):
+    backend=Backend(runtime,None);stopping=False
+    def stop(*_):
+        nonlocal stopping
+        stopping=True
+    signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
+    def enabled():
+        return not stopping and headless_authorized() and (ROOT/'enabled').is_file() and not (MODULE/'disable').exists() and not (MODULE/'remove').exists()
+    descriptor={'version':'0.3.0','headless':True,'modes':['root']}
+    private_json(CONTROL/'root-control.json',descriptor|{'available':True,'updated':int(time.time())})
+    try:
+        if enabled():backend.reconcile('root')
+        private_json(CONTROL/'mode-status.json',{'mode':'root','enabled':enabled(),'headless':True})
+        retry_at=0;delay=2
+        while enabled():
+            if backend.child is not None and backend.child.poll() is not None and time.monotonic()>=retry_at:
+                try:backend.start('root');delay=2
+                except Exception as error:
+                    private_json(CONTROL/'mode-status.json',{'mode':'root','headless':True,'error':type(error).__name__})
+                    retry_at=time.monotonic()+delay;delay=min(30,delay*2)
+            time.sleep(.5)
+    finally:
+        backend.stop('root')
+        private_json(CONTROL/'root-control.json',descriptor|{'available':False})
+        private_json(CONTROL/'mode-status.json',{'mode':'root','headless':True,'enabled':False})
+
 def main():
     if os.geteuid()!=0:raise PermissionError('Only installed root supervisor may run')
     import fcntl
@@ -197,8 +255,11 @@ def main():
     with (CONTROL/'supervisor.lock').open('a+b') as lock:
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:return
+        if not APPFILES.parent.exists() and headless_authorized():
+            return headless_main(Path(__file__).resolve().parents[1])
         uid=APPFILES.parent.stat().st_uid
         if not 10000<uid<20000:raise ValueError('Unexpected owned application UID')
+        prepare_app_files(uid)
         runtime=Path(__file__).resolve().parents[1];backend=Backend(runtime,uid)
         initial='app' if not (ROOT/'config.json').exists() and (APP/'config.json').exists() else 'root'
         coordinator=Coordinator(CONTROL/'mode.sqlite3',backend,initial=initial)
@@ -207,7 +268,7 @@ def main():
             nonlocal stopping
             stopping=True
         signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop)
-        private_json(APPFILES/'root-control.json',{'version':'0.2.5','available':True,'modes':list(MODES),'updated':int(time.time())},uid)
+        private_json(APPFILES/'root-control.json',{'version':'0.3.0','available':True,'modes':list(MODES),'updated':int(time.time())},uid)
         try:
             if coordinator.state()['enabled']:backend.reconcile(coordinator.state()['mode'])
             else:backend.stop(coordinator.state()['mode'])
@@ -216,7 +277,7 @@ def main():
             while not stopping and (ROOT/'enabled').is_file() and not (MODULE/'disable').exists() and not (MODULE/'remove').exists():
                 selected=coordinator.state()['mode']
                 if time.monotonic()>=next_descriptor:
-                    private_json(APPFILES/'root-control.json',{'version':'0.2.5','available':True,'modes':list(MODES),'updated':int(time.time())},uid);next_descriptor=time.monotonic()+30
+                    private_json(APPFILES/'root-control.json',{'version':'0.3.0','available':True,'modes':list(MODES),'updated':int(time.time())},uid);next_descriptor=time.monotonic()+30
                 if coordinator.state()['enabled'] and selected!='app' and backend.child is not None and backend.child.poll() is not None and time.monotonic()>=retry_at:
                     try:backend.start(selected);retry_delay=2
                     except Exception as error:
@@ -239,6 +300,6 @@ def main():
                 time.sleep(.5)
         finally:
             backend.stop(coordinator.state()['mode']);coordinator.close()
-            private_json(APPFILES/'root-control.json',{'version':'0.2.5','available':False,'modes':list(MODES)},uid)
+            private_json(APPFILES/'root-control.json',{'version':'0.3.0','available':False,'modes':list(MODES)},uid)
 
 if __name__=='__main__':main()

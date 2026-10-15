@@ -40,6 +40,7 @@ def main():
     dest = args.output.expanduser().resolve()
     if dest.exists():
         p.error(f"Refusing to overwrite existing {dest}")
+    dest.parent.mkdir(parents=True,exist_ok=True)
     sources = sorted(PKG.glob("*.py"))
     if not {"__main__.py", "engine.py", "android.py", "legacy_display.py"}.issubset({f.name for f in sources}):
         p.error("Incomplete Python runtime")

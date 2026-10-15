@@ -1,19 +1,20 @@
 {
-  "version": "0.2.5",
+  "version": "0.3.0",
   "package": "org.relaykite.runtime",
-  "apk_sha256": "fe23067d47bd196e3052d0605a60d6bb9465f34aaff7163f468374de2715d72c",
-  "dex_sha256": "64018356905de623a62fd1800c31897695cb217747d90db44981b2ce12542d8c",
-  "r8_sha256": "cd849dec47fe15ff349199162d7a6caaffd8548703fcb167d5c450afe8b67180",
+  "apk_sha256": "408bd4fa552c7bac28febfaf436d062fcbd651a925881b9ab6ab0dd5c12f0fd5",
+  "dex_sha256": "3af1a8802b900571ed8fe88c9642c7a3bc1e630c8c26c0c52d020042cab4c20a",
+  "r8_sha256": "3502f087388ce95bbf5254555927f09385dc2636873964d0bd53f3eaf4fb49ad",
   "android_jar_sha256": "aec874bb691a604a64b93c907b65c26bcc1311050e09413cf050bc5bd9e68488",
   "source_sha256": {
     "java/org/relaykite/runtime/BootReceiver.java": "a6224911324359d7cb00264c8790146d9271e24665e73216f24ce02886d8ec0c",
     "java/org/relaykite/runtime/FileLaunchActivity.java": "67ee1ff431e554cf419f9a2628ea9d728e6a831d98318fef29d46365c548bacc",
     "java/org/relaykite/runtime/ModelRemovalReceiver.java": "0d224eca6e63f610193bfea2fbc819ae7e59305bc24ba119e656fcd46356c2c0",
-    "java/org/relaykite/runtime/RuntimeActivity.java": "a4ceedc93801d94c71ffe43bad26fdfd8459f7805d36498b2948ced28067e93c",
+    "java/org/relaykite/runtime/RuntimeActivity.java": "efb9389600b7848b1902b741e4b8c3eab917f4d198e5d1a7c8ad33d93414479a",
     "java/org/relaykite/runtime/RuntimeInstaller.java": "19c85e19d4232b3e1de072a8c1a7b385d32002c65f09fd27bd24fe73529a8f29",
     "java/org/relaykite/runtime/ScopedFileProvider.java": "fe7d505c5b40aeaa7e0fdc8254cde862e24bfd4366a4cbd766e73eae81ec9db5",
     "java/org/relaykite/runtime/ScopedFiles.java": "00ca765e5239d1ab58046ed98ef47dc2bd3684e9a688090bb15c3509160b2f55",
-    "java/org/relaykite/runtime/WorkerService.java": "ac58953ddf003d2e9a1d65e68ec4200da9f70528e0b57fb10b36cff77203deeb",
-    "AndroidManifest.xml": "fbdd2dd1d324fb8578ce3572fab75580670f3a6920171e658ac82ff2c3aa2cf5"
+    "java/org/relaykite/runtime/WorkerService.java": "57257df0dbc08eeb0b895b3edc657cd6c2f20fcb5d8aa0485d74e8604fce6bfa",
+    "AndroidManifest.xml": "400085467343b8aa49fdfac26e258b180594b661d9358dfd5fcaee06297ce209",
+    "res/drawable/relaykite_icon.png": "3397aa2138a00391643eb78978286df91878d81b9d1e74f07fdfe591d55c465c"
   }
 }

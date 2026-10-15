@@ -32,6 +32,8 @@ async function fixture() {
   const key = "pc_test_"+randomUUID().replaceAll("-", ""); globalThis[key]=context;
   let source = await readFile(new URL("../lib/pc-relay.ts", import.meta.url), "utf8");
   const portable = JSON.parse(await readFile(new URL('../lib/pc-portable-tools.json',import.meta.url),'utf8'));
+  const phoneDefinitions = JSON.parse(await readFile(new URL('../lib/phone-tools.json',import.meta.url),'utf8'));
+  source=source.replace('import phoneDefinitions from "./phone-tools.json";',`const phoneDefinitions=${JSON.stringify(phoneDefinitions)};`);
   source=source.replace('import portableDefinitions from "./pc-portable-tools.json";',`const portableDefinitions=${JSON.stringify(portable)};`);
   source = source.replace('import { env } from "cloudflare:workers";', `const ctx = globalThis[${JSON.stringify(key)}]; const env = ctx.env;`)
     .replace('import { getChatGPTUser } from "../app/chatgpt-auth";', 'const getChatGPTUser = async () => ctx.user;')

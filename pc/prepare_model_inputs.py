@@ -15,7 +15,7 @@ def main(argv=None):
         target=root/name
         if target.is_file() and target.stat().st_size==size and hashlib.file_digest(target.open('rb'),'sha256').hexdigest()==digest:return
         part=checked(target.with_suffix('.part'));hasher=hashlib.sha256();received=0;next_update=0
-        request=urllib.request.Request(url,headers={'User-Agent':'RelayKite-model-installer/0.2.5'})
+        request=urllib.request.Request(url,headers={'User-Agent':'RelayKite-model-installer/0.3.0'})
         with urllib.request.urlopen(request,timeout=30) as response,part.open('wb') as out:
             if not response.url.startswith('https://'):raise ValueError('Model download redirected away from HTTPS')
             while True:

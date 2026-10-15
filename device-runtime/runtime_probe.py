@@ -7,7 +7,7 @@ assert db.execute("SELECT count(*) FROM owned WHERE owned MATCH 'runtime'").fetc
 node=subprocess.run([str(native/'librelaykite_node.so'),'-e',"const {DatabaseSync}=require('node:sqlite');const d=new DatabaseSync(':memory:');d.exec('CREATE VIRTUAL TABLE own USING fts5(content)');console.log(JSON.stringify({version:process.version,sqlite:true}));"],capture_output=True,text=True,check=True,timeout=15)
 shell=subprocess.run(['/system/bin/sh','-c','id -u'],capture_output=True,text=True,check=True,timeout=5)
 maps=Path('/proc/self/maps').read_text();domain=Path('/proc/self/attr/current').read_text().strip('\0\n')
-result={'version':'0.2.5','uid':os.getuid(),'selinux':domain,'python':sys.version.split()[0],'executable':sys.executable,
+result={'version':'0.3.0','uid':os.getuid(),'selinux':domain,'python':sys.version.split()[0],'executable':sys.executable,
         'python_fts5':True,'node':json.loads(node.stdout),'system_shell_uid':int(shell.stdout.strip()),'ca_count':len(ssl.create_default_context().get_ca_certs()),
         'termux_accessible':Path('/data/data/com.termux/files/usr/bin/python').exists(),'termux_mapped':any('com.termux' in line for line in maps.splitlines()),'app_private_base':str(base)}
 assert result['uid']>10000 and 'untrusted_app' in domain
