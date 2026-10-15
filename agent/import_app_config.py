@@ -9,7 +9,7 @@ def first_import(source):
     source=safe_path(source)
     if not source.is_file() or source.stat().st_size>32768:raise ValueError('Configuration file exceeds32KiB or is not regular')
     if (BASE/'config.json').exists():raise ValueError('Existing owner configuration preserved; use the mode migration flow')
-    value=json.loads(source.read_text());allowed={'relay_url','agent_token','sites_authorization','poll_seconds','outbound_proxy','state_dir','memory_dir','disable_file'}
+    value=json.loads(source.read_text());allowed={'relay_url','agent_token','sites_authorization','poll_seconds','outbound_proxy','state_dir','memory_dir','disable_file','additional_relays'}
     if not isinstance(value,dict) or set(value)-allowed:raise ValueError('Unsupported configuration fields')
     value={k:v for k,v in value.items() if k not in ('state_dir','memory_dir','disable_file')};config=validate(value,BASE,BASE)
     BASE.mkdir(parents=True,exist_ok=True,mode=0o700)

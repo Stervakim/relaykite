@@ -68,7 +68,7 @@ def stable_action_target(previous, current, requested):
         return False
     def same(a,b):
         fields=('role','resource_id','text','description','bounds','enabled',
-                'visible','password','window_id','editable')
+                'visible','password','window_id','editable','checked','selected','scrollable','actions')
         return all(a.get(f)==b.get(f) for f in fields)
     selector=requested.get('selector')
     if selector:

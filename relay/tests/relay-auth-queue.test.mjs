@@ -42,7 +42,7 @@ async function fixture() {
   // deduplication, maintenance and result handling run from the actual source.
   const replacements = [
     ['import { env } from "cloudflare:workers";', `const env = globalThis[${JSON.stringify(key)}].env;`],
-    ['import { headers } from "next/headers";', `const headers = async () => new Headers(globalThis[${JSON.stringify(key)}].user ? {"oai-authenticated-user-id":globalThis[${JSON.stringify(key)}].user} : {});`],
+    ['import { headers } from "next/headers";', `const headers = async () => new Headers(globalThis[${JSON.stringify(key)}].user ? {"oai-authenticated-user-id":globalThis[${JSON.stringify(key)}].user,"oai-authenticated-user-email":globalThis[${JSON.stringify(key)}].email || ""} : {});`],
     ['import definitions from "./phone-tools.json";', `const definitions = ${JSON.stringify(definitions)};`],
   ];
   for (const [original, replacement] of replacements) {
@@ -88,20 +88,75 @@ test("a queued request is claimed once, completed and deduplicated on retry", as
     f.context.user = "fixture-owner-a";
     const owner = await f.relay.ownerId();
     assert.equal((await f.relay.nextJob()).status, 204); // Agent heartbeat.
-    const pending = f.relay.callTool("phone_status", {}, owner, "fixture-request-1");
+    const args = {command:"id -u",request_id:"fixture-request-1"};
+    const pending = f.relay.callTool("root_shell", args, owner, "rpc-1");
     await delay(25);
     const responses = await Promise.all([f.relay.nextJob(), f.relay.nextJob(), f.relay.nextJob()]);
     assert.equal(responses.filter(response => response.status === 200).length, 1);
     assert.equal(responses.filter(response => response.status === 204).length, 2);
     const claimed = await responses.find(response => response.status === 200).json();
-    assert.equal(claimed.job.tool, "phone_status");
+    assert.equal(claimed.job.tool, "root_shell");
+    assert.deepEqual(claimed.job.arguments,{command:"id -u"});
     const result = { content: [{ type: "text", text: "fixture phone result" }], isError: false };
     assert.equal((await f.relay.saveResult(claimed.job.id, { status: "completed", result })).status, 200);
     assert.deepEqual(await pending, result);
-    assert.deepEqual(await f.relay.callTool("phone_status", {}, owner, "fixture-request-1"), result);
+    assert.deepEqual(await f.relay.callTool("root_shell", args, owner, "rpc-2"), result);
     assert.equal(f.sqlite.prepare("SELECT COUNT(*) AS n FROM phone_jobs").get().n, 1);
     assert.equal((await f.relay.jobResult(claimed.job.id, "fixture-owner-b")).isError, true);
   } finally { f.close(); }
+});
+
+test("explicit second-account invitation pins identity and maps to the original phone owner", async () => {
+  const f=await fixture();
+  try {
+    f.context.env.PHONE_ADDITIONAL_ACCOUNT_EMAILS='["second@example.test"]';
+    f.context.user='second-user';f.context.email='second@example.test';
+    assert.equal(await f.relay.ownerId(),null); // Cannot initialise ownership.
+    f.context.user='owner-a';f.context.email='owner@example.test';
+    assert.equal(await f.relay.ownerId(),'owner-a');
+    f.context.user='second-user';f.context.email='SECOND@example.test';
+    assert.equal(await f.relay.ownerId(),'owner-a');
+    f.context.user='replacement-user';
+    assert.equal(await f.relay.ownerId(),null); // Same email cannot replace pinned ID.
+    f.context.user='uninvited-user';f.context.email='other@example.test';
+    assert.equal(await f.relay.ownerId(),null);
+    f.context.user='second-user';f.context.email='second@example.test';
+    f.context.env.PHONE_ADDITIONAL_ACCOUNT_EMAILS='[]';
+    assert.equal(await f.relay.ownerId(),null); // Revocation is immediate.
+  } finally {f.close();}
+});
+
+test("read-only calls remain fresh when the host reuses JSON-RPC ids", async () => {
+  const f=await fixture();
+  try {
+    await f.relay.nextJob();
+    const ids=[];
+    for (let index=0;index<2;index++) {
+      const pending=f.relay.callTool('phone_status',{},'owner-a',1);
+      await delay(25);
+      const claimed=await (await f.relay.nextJob()).json();ids.push(claimed.job.id);
+      const result={content:[{type:'text',text:'fresh-'+index}],isError:false};
+      await f.relay.saveResult(claimed.job.id,{status:'completed',result});
+      assert.deepEqual(await pending,result);
+    }
+    assert.notEqual(ids[0],ids[1]);
+  } finally {f.close();}
+});
+
+test("mutations require stable identity and reject changed retry arguments", async () => {
+  const f=await fixture();
+  try {
+    await assert.rejects(f.relay.callTool('root_shell',{command:'id'},'owner-a',1),/request_id/);
+    assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM phone_jobs').get().n,0);
+    await f.relay.nextJob();
+    const pending=f.relay.callTool('root_shell',{command:'id',request_id:'stable-operation'},'owner-a',1);
+    await delay(25);
+    const claimed=await (await f.relay.nextJob()).json();
+    await f.relay.saveResult(claimed.job.id,{status:'completed',result:{content:[],isError:false}});
+    await pending;
+    await assert.rejects(f.relay.callTool('root_shell',{command:'pwd',request_id:'stable-operation'},'owner-a',1),/changed arguments/);
+    assert.equal(f.sqlite.prepare('SELECT COUNT(*) AS n FROM phone_jobs').get().n,1);
+  } finally {f.close();}
 });
 
 test("expired queued/running jobs become uncertain and are not claimed again", async () => {

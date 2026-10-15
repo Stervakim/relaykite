@@ -16,6 +16,8 @@ logs/
 *.db
 *.pem
 *.key
+.relaykite-dev/
+browser-profile/
 device-runtime/artifacts/*.apk
 device-runtime/artifacts/*.idsig
 device-runtime/fixtures/artifacts/

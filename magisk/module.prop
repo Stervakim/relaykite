@@ -1,6 +1,6 @@
 id=mini_codex
-name=RelayKite Android Agent
-version=0.2.5
-versionCode=20500
+name=RelayKite · Codex Android
+version=0.3.0
+versionCode=30000
 author=Codaki Mini Codex contributors
-description=RelayKite 0.2.5: signed embedded Python and Node, explicit app/root/root+Termux modes, durable tasks and original private memory. Configure in the matching APK; outbound HTTPS only.
+description=RelayKite 0.3.0: signed embedded Python and Node, explicit app/root/root+Termux modes, durable tasks and original private memory. Configure in the matching APK; outbound HTTPS only.

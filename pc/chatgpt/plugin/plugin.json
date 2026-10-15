@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "codaki-mini-codex-pc",
-  "version": "0.2.5",
-  "description": "Управление ПК через PowerShell с разрешения владельца; телефон необязателен.",
+  "version": "0.3.0",
+  "description": "Автономная разработка и управление своим ПК через обычный ChatGPT.",
   "author": {
     "name": "Codaki contributors"
   },
@@ -13,10 +13,10 @@
       "apps": "./.app.json",
       "onboardingSkill": "./skills/setup/SKILL.md",
       "interface": {
-        "displayName": "RelayKite — ПК",
-        "shortDescription": "Управление ПК через PowerShell с разрешения владельца; телефон необязателен.",
+        "displayName": "RelayKite · Codex",
+        "shortDescription": "Автономная разработка и управление своим ПК через обычный ChatGPT.",
         "longDescription": "Фоновый агент без окна: PowerShell, файлы, сохранённые связи с телефонами и совместная работа с доступными плагинами GPT. Сервер и разрешения настраиваются владельцем.",
-        "developerName": "Codaki",
+        "developerName": "RelayKite",
         "category": "Productivity",
         "capabilities": [
           "Read",
@@ -24,9 +24,9 @@
         ],
         "websiteURL": "https://github.com/Stervakim/relaykite",
         "defaultPrompt": [
-          "Настрой Mini Codex на моём ПК и проверь разрешённые возможности."
+          "Помоги настроить RelayKite · Codex и проверь подключение."
         ],
-        "brandColor": "#6EF0BA",
+        "brandColor": "#3B6FF5",
         "composerIcon": "./assets/icon.png",
         "logo": "./assets/icon.png"
       }

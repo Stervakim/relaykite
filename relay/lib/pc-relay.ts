@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { getChatGPTUser } from "../app/chatgpt-auth";
 import { ownerId, callTool, now, json, validAgent } from "./phone-relay";
 import portableDefinitions from "./pc-portable-tools.json";
+import phoneDefinitions from "./phone-tools.json";
 
 type Link = { id: string; inviter: string; email: string; owner: string | null; token_hash: string | null; label: string; capabilities: string; phone_access: number; state: string; expires_at: number; last_seen: number };
 type Job = { id: string; link_id: string; tool: string; arguments: string; state: string; expires_at: number; result: string | null };
@@ -11,6 +12,7 @@ export const pcOperations: Record<string, string | null> = { pc_status: null, pc
 for(const tool of portableDefinitions)pcOperations[tool.name]='terminal';
 pcOperations.pc_memory_summarize=null; // Fixed local model; no command or filesystem arguments.
 pcOperations.pc_memory_model_remove=null; // Only this owner's recorded optional model; no path arguments.
+pcOperations.relaykite_dev='codex'; // Durable development is scoped to the existing owner-paired PC grant.
 const result = (value: unknown) => ({ content: [{ type: "text", text: JSON.stringify(value) }], isError: false });
 function portableResult(value:any):any {
   if(!value?.structuredContent || !Array.isArray(value.content))return result(value);
@@ -39,7 +41,10 @@ function validatePortable(schema:any,value:any){
 }
 const object = (properties: Record<string, unknown>, required: string[]) => ({ type: "object", properties, required, additionalProperties: false });
 const str = { type: "string", minLength: 1, maxLength: 200 };
+const developmentInput = phoneDefinitions.find(tool => tool.name === "phone_development")!.inputSchema;
+const developmentSchema = object({...developmentInput.properties, connection_id:str}, ["operation","request_id"]);
 export const bridgeTools = [
+  { name: "relaykite_dev", description: "One entry point for durable autonomous Codex development. By default runs on the owner's Android phone through ordinary saved ChatGPT conversations; no PC or Termux is required. Phone mode requires explicit Android root and has no sandbox isolation. Optionally provide connection_id to use an authorized paired PC with its existing local codex grant and workspace sandbox. Start with capabilities; start returns a run_id and continues in the background after the chat response. Put prompt, an owner-allowed existing absolute workspace, optional verify_command and limits in arguments for start. Use status/events/artifacts and pause/resume/cancel with that run_id. Keep request_id stable for retries and use a fresh ID for new status/event polls. Inspect uncertain effects before resuming. Login and account quotas remain effective.", inputSchema: developmentSchema },
   { name: "mini_pc_invite", description: "Invite a PC by its owner's ChatGPT email. Does not grant access until that owner signs in and approves the PC fingerprint. Can invite yourself for PC-only use. Deliver the code yourself; no email is sent.", inputSchema: object({ email: str, phone_access: { type: "boolean", description: "Explicitly allow this PC to request phone commands. Default false." } }, ["email"]) },
   { name: "mini_connections", description: "List saved Mini Codex PC links, permissions and online status.", inputSchema: object({}, []) },
   { name: "mini_pc_call", description: "Queue an authorized operation on a paired PC. Start with pc_status. Portable Windows UI operations pc_use_apps/capabilities/diagnostics/session_start/session_extend/session_stop/observe/launch/action/batch/result/reconcile require the existing local Portable RPC and terminal grant. Put a separate stable engine request_id in arguments; use target_request_id for receipt lookup/reconciliation. Window sessions share a desktop; never replay stopped/uncertain input. Supported operations: pc_terminal(command,cwd,timeout_seconds); pc_read_file(path); pc_write_file(path,text); pc_list_files(path); pc_codex(prompt,cwd,timeout_seconds). Use a stable request_id, and poll mini_pc_result. Never repeat uncertain commands. Computer Use and Sites are separate client plugins; call their actual tools only on the intended host.", inputSchema: object({ connection_id: str, tool: { type: "string", enum: Object.keys(pcOperations) }, arguments: { type: "object" }, request_id: str }, ["connection_id", "tool", "arguments", "request_id"]) },
@@ -149,6 +154,19 @@ export async function callBridge(name: string, args: Record<string, unknown>) {
     const code = crypto.randomUUID() + crypto.randomUUID(); const id = crypto.randomUUID();
     await db().prepare("INSERT INTO pc_links(id,inviter,email,code_hash,expires_at,phone_access) VALUES(?,?,?,?,?,?)").bind(id, user.userId, recipient, await hash(code), now() + 600, args.phone_access === true ? 1 : 0).run();
     return result({ connection_id: id, code, expires_at: now() + 600, email: recipient, instruction: "On the intended PC run pair, then sign in on /bridge?id=" + id + ". Compare the fingerprint and approve. Deliver the code privately; no email was sent. Hosting must permit this recipient to sign in; email does not bypass Site access." });
+  }
+  if (name === "relaykite_dev") {
+    validatePortable(developmentSchema,args);
+    const operation = text(args.operation);
+    const nested = args.arguments ?? {};
+    if (args.connection_id === undefined) {
+      const owner = await ownerId();
+      if (!owner) throw new Error("Authenticated phone owner required");
+      return callTool("phone_development", {operation, request_id:text(args.request_id), arguments:nested}, owner, text(args.request_id));
+    }
+    if (operation === 'install') throw new Error('Engine installation is phone-only; install Codex locally on the paired PC');
+    const link = await linkFor(text(args.connection_id), user.userId);
+    return result(await enqueue(link, {tool:"relaykite_dev",request_id:args.request_id,arguments:{...(nested as Record<string,unknown>),operation,request_id:text(args.request_id)}}));
   }
   const link = await linkFor(text(args.connection_id), user.userId);
   if (name === "mini_disconnect") { await revoke(link.id); return result({ revoked: true }); }

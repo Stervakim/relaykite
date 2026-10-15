@@ -112,6 +112,8 @@ class Journal:
         self.db.execute('PRAGMA journal_mode=DELETE')
         self.db.execute('CREATE TABLE IF NOT EXISTS jobs (id TEXT PRIMARY KEY,expires REAL,args_hash TEXT,status TEXT,result TEXT,updated REAL)')
         self.db.execute('CREATE TABLE IF NOT EXISTS delivered (id TEXT PRIMARY KEY)')
+        self.db.execute('CREATE TABLE IF NOT EXISTS relay_routes (id TEXT PRIMARY KEY,relay TEXT NOT NULL,remote_id TEXT NOT NULL,UNIQUE(relay,remote_id))')
+        self.db.execute('CREATE TABLE IF NOT EXISTS relay_metadata (key TEXT PRIMARY KEY,value TEXT NOT NULL)')
         self.db.execute('CREATE TABLE IF NOT EXISTS tool_metrics (tool TEXT PRIMARY KEY,calls INTEGER,errors INTEGER,total_ms REAL,max_ms REAL,first_at REAL,last_at REAL)')
         self.known_tools={definition['name'] for definition in native_phone.tool_definitions()}
         # The previous process might have performed an action before crashing.
@@ -128,6 +130,7 @@ class Journal:
         self.db.execute('DELETE FROM jobs WHERE expires<? AND updated<?',
                         (now,now-RESULT_RETENTION_SECONDS))
         self.db.execute('DELETE FROM delivered WHERE id NOT IN (SELECT id FROM jobs)')
+        self.db.execute('DELETE FROM relay_routes WHERE id NOT IN (SELECT id FROM jobs)')
         tombstone=json.dumps(error_result('Cached output was compacted. This action already ran or has an uncertain outcome; automatic re-execution remains blocked.'))
         self.db.execute("UPDATE jobs SET result=?,status='uncertain' WHERE status!='started' AND id NOT IN (SELECT id FROM jobs ORDER BY updated DESC LIMIT 100) AND (status!='uncertain' OR length(result)>?)",(tombstone,len(tombstone)))
         self.db.commit()
@@ -177,6 +180,61 @@ class Journal:
                 self.db.rollback()
         self.compact()
         return result
+
+
+class RelayJournal:
+    """Namespace transport receipts inside the one existing phone journal.
+
+    Connections are explicitly owner-configured. They share the phone runtime,
+    but a colliding remote job ID cannot read another relay's cached output.
+    The first upgraded primary binds pre-upgrade raw IDs durably. Upgrades must
+    preserve that configured URL; a later primary change cannot take its output.
+    """
+    def __init__(self,journal,relay_url,primary=False):
+        self.journal=journal;self.relay=hashlib.sha256(relay_url.rstrip('/').encode()).hexdigest()
+        if primary:
+            journal.db.execute("INSERT OR IGNORE INTO relay_metadata VALUES('legacy_origin',?)",(self.relay,))
+            journal.db.commit()
+        row=journal.db.execute("SELECT value FROM relay_metadata WHERE key='legacy_origin'").fetchone()
+        self.legacy_origin=bool(row and row[0]==self.relay)
+
+    def ident(self,remote):
+        return 'relay_'+hashlib.sha256((self.relay+'\0'+remote).encode()).hexdigest()
+
+    def get(self,remote):
+        value=self.journal.get(self.ident(remote))
+        if value is None and self.legacy_origin and not self.journal.db.execute('SELECT 1 FROM relay_routes WHERE id=?',(remote,)).fetchone():
+            # The recorded origin retains its receipts even as a secondary.
+            value=self.journal.get(remote)
+        return value
+
+    def compact(self):self.journal.compact()
+
+    def start(self,remote,expires,fingerprint):
+        ident=self.ident(remote)
+        # Route is durable before an executable receipt is created. A crash
+        # here has no effect; a crash after start retains the original route.
+        self.journal.db.execute('INSERT OR IGNORE INTO relay_routes VALUES(?,?,?)',(ident,self.relay,remote))
+        self.journal.db.commit()
+        self.journal.start(ident,expires,fingerprint)
+
+    def finish(self,remote,*args,**kwargs):return self.journal.finish(self.ident(remote),*args,**kwargs)
+
+    def pending(self):
+        routes={row[0]:(row[1],row[2]) for row in self.journal.db.execute('SELECT id,relay,remote_id FROM relay_routes')}
+        result=[]
+        for ident,value,status in self.journal.pending():
+            route=routes.get(ident)
+            if route and route[0]==self.relay:result.append((route[1],value,status))
+            elif route is None and self.legacy_origin:result.append((ident,value,status))
+        return result
+
+    def delivered(self,remote):
+        ident=self.ident(remote)
+        if self.journal.get(ident):self.journal.delivered(ident)
+        elif self.legacy_origin and not self.journal.db.execute('SELECT 1 FROM relay_routes WHERE id=?',(remote,)).fetchone() and self.journal.get(remote):
+            self.journal.delivered(remote)
+        else:raise ValueError('No receipt belongs to this relay')
 
 
 def execute_job(job:dict,journal:Journal,executor=native_phone.dispatch,disabled=lambda:False):
@@ -251,8 +309,9 @@ def run_agent(config:dict,state:Path):
     handler=RotatingFileHandler(state/'agent.log',maxBytes=1024*1024,backupCount=4,encoding='utf-8')
     logger.addHandler(handler)
     os.chmod(state/'agent.log',0o600)
-    relay=Relay(config)
     journal=Journal(state)
+    relays=[(Relay(connection),RelayJournal(journal,connection['relay_url'],primary=index==0))
+            for index,connection in enumerate([config,*config.get('additional_relays',[])])]
     from managed_tools import start as start_managed, stop as stop_managed
     managed=start_managed(state,native_phone.dispatch)
     from summary_worker import SummaryPump
@@ -271,16 +330,22 @@ def run_agent(config:dict,state:Path):
     try:
         while not disabled():
             try:
-                flush_results(relay,journal)
-                job=relay.next_job()
-                retry_delay=delay  # A successful poll restores normal responsiveness.
-                if job and not disabled():
-                    ident,result,status=execute_job(job,journal,disabled=disabled)
-                    # Local result is cached first; if POST fails the next delivery
-                    # resubmits the cache and never repeats the root action.
-                    flush_results(relay,journal)
-                    logger.info('Job %s: %s',ident,status)
-                    continue
+                worked=False;healthy=False
+                for relay,scoped in relays:
+                    if disabled():break
+                    try:
+                        flush_results(relay,scoped)
+                        job=relay.next_job();healthy=True
+                        if job and not disabled():
+                            ident,result,status=execute_job(job,scoped,disabled=disabled)
+                            flush_results(relay,scoped)
+                            logger.info('Job %s: %s',ident,status);worked=True
+                    except urllib.error.HTTPError as exc:
+                        logger.warning('Relay connection HTTP status %s',exc.code);exc.close()
+                    except InterruptedError:raise
+                    except Exception as exc:logger.warning('Relay connection event: %s',type(exc).__name__)
+                retry_delay=delay if healthy else min(30,retry_delay*2)
+                if worked:continue
             except urllib.error.HTTPError as exc:
                 logger.warning('Relay HTTP status %s',exc.code)
                 exc.close()

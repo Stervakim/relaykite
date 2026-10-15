@@ -1,4 +1,4 @@
-# Codaki Portable Use 0.1.4
+# Codaki Portable Use 0.1.5
 ## Android 0.1.4: несколько дисплеев
 
 До трёх сессий virtual_display, отдельные имена, lease, PID-generation и observations. Один общий UIAutomation inspector обслуживает явно проверенный nonzero display каждого запроса; физический экран не используется как fallback. Ввод сериализован, uncertain блокирует новые действия до проверки. session_stop освобождает только свой дисплей. После перезапуска агент освобождает подтверждённые собственные дисплеи предыдущего процесса; старые session IDs не восстанавливаются. Данные приложений общие; поддержка нескольких activity зависит от приложения.
@@ -8,9 +8,9 @@
 
 Управление Android на отдельном виртуальном экране и Windows-приложениями через локальный или закрытый облачный MCP.
 
-**Версия 0.1.4:** несколько Android-экранов и Mini IPC; Windows batch и отдельные оконные сессии сохранены. Доступны новые ZIP и SHA-256.
+**Версия 0.1.5:** проверка цели перед вводом учитывает checked/selected/actions/scrollability. Несколько Android-экранов, Mini IPC, Windows batch и оконные сессии сохранены. Компонент включён в RelayKite 0.3.0; отдельный плагин не нужен при работе через локальный IPC.
 
-**[Установить через Codex](CODEX_INSTALL.md)** · [Изменения](CHANGELOG.md) · [Релиз 0.1.4](https://github.com/kalabuxova1-hash/codaki-portable-use/releases/tag/v0.1.4) · [Полный ZIP](https://github.com/kalabuxova1-hash/codaki-portable-use/releases/download/v0.1.4/codaki-portable-use-0.1.4-full.zip) · [Android ZIP](https://github.com/kalabuxova1-hash/codaki-portable-use/releases/download/v0.1.4/codaki-portable-use-0.1.4-android.zip)
+**[Установить через Codex](CODEX_INSTALL.md)** · [Изменения](CHANGELOG.md) · [Релиз RelayKite 0.3.0](https://github.com/Stervakim/relaykite/releases/tag/v0.3.0) · [Полный ZIP](https://github.com/Stervakim/relaykite/releases/download/v0.3.0/codaki-portable-use-0.1.5-full.zip) · [Android ZIP](https://github.com/Stervakim/relaykite/releases/download/v0.3.0/codaki-portable-use-0.1.5-android.zip)
 
 ## Новое в 0.1.2b
 
@@ -23,6 +23,6 @@
 
 Сеансы Windows не создают отдельных рабочих столов или аккаунтов. Мышь и клавиатура общие, команды ввода сериализованы. Одно окно принадлежит одному сеансу. Скриншоты и координатный ввод требуют переднего плана. При UNCERTAIN сначала проверьте результат и выполните reconciliation; не повторяйте ввод.
 
-Весь пакет поставляется без приватных agent-конфигураций, ключей, журналов и состояния устройств. Установка сама по себе не создаёт связь с ChatGPT: Codex должен развернуть собственный закрытый relay, зарегистрировать устройство и подтвердить online и ответы UI-команд. Windows нужен Python 3.10+ и разблокированная интерактивная сессия; Android — заранее установленный Magisk/root и Termux Python.
+Весь пакет поставляется без приватных agent-конфигураций, ключей, журналов и состояния устройств. Для RelayKite используется его существующее подключение и локальный IPC. Отдельный облачный режим требует собственной регистрации. Windows нужен Python 3.10+ и разблокированная интерактивная сессия; Android — заранее установленный Magisk/root и подписанный native runtime RelayKite. Termux остаётся совместимым резервным вариантом.
 
 Android-настройки, VPN, Mini Codex и Android Use не меняются при Windows-установке. Java-исходники, проверенные Android JAR и provenance сборки включены. Лицензия MIT.

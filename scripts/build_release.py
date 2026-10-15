@@ -6,18 +6,21 @@ import shutil
 import zipfile
 import json,re
 
-VERSION='0.2.5'
+VERSION='0.3.0'
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('mini_codex_card',ROOT/'chatgpt'/'package_card.py')
 card_builder=importlib.util.module_from_spec(spec)
 spec.loader.exec_module(card_builder)
 MODULE_FILES=('module.prop','skip_mount','customize.sh','service.sh','stop.sh','uninstall.sh','configure.sh','install-runtime.sh','INSTALL_WITH_CODEX.md')
 AGENT_FILES=('native_phone.py','phone_agent.py','network_route.py','pc_peer.py','portable_peer.py','tool-definitions.json','configure.py','support_runtime.py','support/SKILL.md','support/services.md',
+             'development_tools.py','development_install.py','development-engine-lock.json',
              'job_scheduler.py','terminal_manager.py','_pty_exec.py','managed_tools.py','file_ops.py','path_locks.py','file_bridge.py','runtime_paths.py','app_worker.py','import_app_config.py','state_snapshot.py','mode_coordinator.py','root_supervisor.py','bootstrap_native.py',
              'memory_bridge.py','memory_service.py','project_graph.py','graph-runtime.zip','portable_tools.py','runtime_control.py','summary_worker.py',
              'memory_power.py','memory-runtime/codaki-external.mjs','memory-runtime/LICENSE.Tencent','memory-runtime/LICENSE.Graphify','memory-runtime/LICENSE.NetworkX',
              'memory-runtime/external.ts','memory-runtime/external.test.ts','memory-runtime/tencent-external.patch','memory-runtime/versions.json','memory-runtime/README.md')
-EXTRA_AGENT_INPUTS={'install_embedded_runtime.py':'scripts/install_embedded_runtime.py','migrate_private_runtime.py':'scripts/migrate_private_runtime.py'}
+EXTRA_AGENT_INPUTS={'install_embedded_runtime.py':'scripts/install_embedded_runtime.py','migrate_private_runtime.py':'scripts/migrate_private_runtime.py','relocate_elf.py':'scripts/relocate_elf.py'}
+DEVELOPMENT_FILES=tuple(json.loads((ROOT/'pc/development/release-files.json').read_text(encoding='utf-8')))
+EXTRA_AGENT_INPUTS.update({'development/'+name:'pc/development/'+name for name in DEVELOPMENT_FILES})
 GENERATED_FILES=('agent/runtime-apk.sha256',)
 
 
@@ -55,7 +58,9 @@ def build(root=ROOT):
     for name in AGENT_FILES:
         (agent_output/name).parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(root/'agent'/name,agent_output/name)
-    for name,source in EXTRA_AGENT_INPUTS.items():shutil.copyfile(root/source,agent_output/name)
+    for name,source in EXTRA_AGENT_INPUTS.items():
+        (agent_output/name).parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(root/source,agent_output/name)
     (agent_output/'runtime-apk.sha256').write_text(pinned+'\n',encoding='ascii',newline='\n')
     (output/'SHA256SUMS').write_text(''.join(hashlib.sha256(path.read_bytes()).hexdigest()+'  '+path.name+'\n' for path in (target,card)),encoding='ascii',newline='\n')
     return target

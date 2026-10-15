@@ -1,12 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.relaykite.runtime" android:versionCode="25" android:versionName="0.2.5">
+    package="org.relaykite.runtime" android:versionCode="30" android:versionName="0.3.0">
     <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="35" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <queries><package android:name="com.openai.chatgpt" /></queries>
-    <application android:label="RelayKite Runtime" android:allowBackup="false"
+    <application android:label="RelayKite · Codex Android" android:icon="@drawable/relaykite_icon" android:allowBackup="false"
         android:usesCleartextTraffic="false" android:debuggable="false" android:extractNativeLibs="true">
         <activity android:name="org.relaykite.runtime.RuntimeActivity" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>

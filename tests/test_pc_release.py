@@ -23,7 +23,7 @@ class PCReleaseTests(unittest.TestCase):
             self.assertEqual(public.read_bytes(), (ROOT/'pc/chatgpt'/public.name).read_bytes())
             with zipfile.ZipFile(public) as archive:
                 self.assertEqual(json.loads(archive.read('.app.json')), {'apps': {}})
-                self.assertEqual(json.loads(archive.read('plugin.json'))['version'], '0.2.5')
+                self.assertEqual(json.loads(archive.read('plugin.json'))['version'], '0.3.0')
                 self.assertIn('skills/pc-control/SKILL.md', archive.namelist())
             private = card.build_card(ROOT/'pc', Path(tmp)/'private', 'asdk_app_fixture')
             self.assertEqual(card.previous_app_id(private, 'codaki-mini-codex-pc'), 'asdk_app_fixture')
@@ -32,18 +32,22 @@ class PCReleaseTests(unittest.TestCase):
     def test_installer_contains_card_relay_migration_and_only_public_inputs(self):
         with tempfile.TemporaryDirectory() as tmp:
             staged = Path(tmp)/'repo'; staged.mkdir()
-            shutil.copytree(ROOT/'pc', staged/'pc', ignore=shutil.ignore_patterns('__pycache__'))
+            shutil.copytree(ROOT/'pc', staged/'pc', ignore=shutil.ignore_patterns('__pycache__','node_modules'))
             relay = staged/'relay'
             for name in json.loads((ROOT/'pc/relay-files.json').read_text()):
                 path=relay/name; path.parent.mkdir(parents=True,exist_ok=True); shutil.copyfile(ROOT/'relay'/name,path)
             (staged/'pc/config.json').write_text('{"token":"DO_NOT_BUNDLE"}')
+            (staged/'pc/development/provider').mkdir(exist_ok=True)
+            (staged/'pc/development/provider/receipts.sqlite3').write_text('DO_NOT_BUNDLE')
             target = builder.build(staged); first=target.read_bytes()
             self.assertEqual(first,builder.build(staged).read_bytes())
             with zipfile.ZipFile(target) as archive:
                 self.assertIn('relay/drizzle/0001_hesitant_raza.sql',archive.namelist())
                 self.assertIn('mini_codex_pc.py',archive.namelist())
+                self.assertIn('development/server.py',archive.namelist())
+                self.assertIn('development/android_ui.py',archive.namelist())
                 self.assertNotIn('config.json',archive.namelist())
-                nested='chatgpt/codaki-mini-codex-pc-chatgpt-0.2.5.zip'
+                nested='chatgpt/codaki-mini-codex-pc-chatgpt-0.3.0.zip'
                 self.assertEqual(archive.read(nested),(ROOT/'pc/chatgpt'/Path(nested).name).read_bytes())
                 self.assertNotIn(b'DO_NOT_BUNDLE',b''.join(archive.read(p) for p in archive.namelist()))
             for line in (staged/'dist/SHA256SUMS').read_text().splitlines():

@@ -19,7 +19,7 @@ public final class RuntimeActivity extends Activity {
     protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(intent.getBooleanExtra("start_worker",false))startForegroundService(new Intent(this,WorkerService.class));}
     public void onCreate(Bundle saved){
         super.onCreate(saved);LinearLayout layout=new LinearLayout(this);layout.setOrientation(LinearLayout.VERTICAL);layout.setPadding(24,40,24,24);
-        TextView title=new TextView(this);title.setText("RelayKite 0.2.5");title.setTextSize(24);layout.addView(title);
+        TextView title=new TextView(this);title.setText("RelayKite · Codex Android\n0.3.0");title.setTextSize(24);layout.addView(title);
         modeStatus=new TextView(this);layout.addView(modeStatus);
         final TextView status=new TextView(this);layout.addView(status);
         Button check=new Button(this);check.setText("Проверить без root и Termux");layout.addView(check);

@@ -7,7 +7,7 @@ class EmbeddedInstallerTests(unittest.TestCase):
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
     def apk(self,path,entry='agent/owned.py',corrupt=False,extra=False):
         payload=b'owned source';native=b'owned executable';digest=lambda b:hashlib.sha256(b).hexdigest()
-        manifest={'version':'0.2.5','architecture':'arm64-v8a','files':{entry:digest(payload)},'native':{'libowned.so':{'sha256':digest(native)}},'links':{'lib/python/lib-dynload/owned.so':'libowned.so'}}
+        manifest={'version':'0.3.0','architecture':'arm64-v8a','files':{entry:digest(payload)},'native':{'libowned.so':{'sha256':digest(native)}},'links':{'lib/python/lib-dynload/owned.so':'libowned.so'}}
         buf=io.BytesIO()
         with zipfile.ZipFile(buf,'w') as z:
             z.writestr(entry,b'changed' if corrupt else payload);z.writestr('runtime-manifest.json',json.dumps(manifest))

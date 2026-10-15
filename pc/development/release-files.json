@@ -1,0 +1,21 @@
+[
+  "__init__.py",
+  "__main__.py",
+  "android_mcp.py",
+  "android_ui.py",
+  "app_server.py",
+  "catalog.py",
+  "client.py",
+  "context.py",
+  "provider.py",
+  "server.py",
+  "store.py",
+  "supervisor.py",
+  "free-ui.mjs",
+  "package.json",
+  "package-lock.json",
+  "release-files.json",
+  "web/index.html",
+  "web/app.js",
+  "web/styles.css"
+]

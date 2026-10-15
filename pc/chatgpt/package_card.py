@@ -7,7 +7,7 @@ import re
 import zipfile
 
 FILES=('plugin.json','.app.json','README.md','assets/icon.png',
-       'skills/setup/SKILL.md','skills/pc-control/SKILL.md','skills/update/SKILL.md','skills/remove/SKILL.md','skills/using-codaki-pc-use/SKILL.md','skills/using-codaki-memory/SKILL.md')
+       'skills/setup/SKILL.md','skills/pc-control/SKILL.md','skills/update/SKILL.md','skills/remove/SKILL.md','skills/using-codaki-pc-use/SKILL.md','skills/using-codaki-memory/SKILL.md','skills/relaykite-agent/SKILL.md')
 
 def build_card(root, output, app_id=None):
     root=Path(root).resolve()

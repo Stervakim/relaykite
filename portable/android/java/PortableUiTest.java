@@ -71,7 +71,7 @@ public final class PortableUiTest extends VirtualUiTest {
             for(int i=0;i<values.length;i++)if((bits&values[i])!=0)actions.add(labels[i]);if((bits&(4096|8192))!=0)actions.add("scroll");item.put("actions",actions);
             if(password){item.put("text","");item.put("description","");}
             nodes.add(item);handles.put(v.id,n);
-            if(v.depth>=40){truncated=true;continue;}
+            if(v.depth>=128){truncated=true;continue;}
             int count=(Integer)call(n,"getChildCount",new Class<?>[0]);
             for(int i=0;i<count;i++){Object child=call(n,"getChild",new Class<?>[]{int.class},i);if(child!=null)q.add(new Visit(child,v.id+"/"+i,v.id,v.window,v.depth+1));}
         }

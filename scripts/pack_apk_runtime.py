@@ -63,13 +63,21 @@ def pack(source,output):
         else:assets[name]=raw
     for path in sorted((ROOT/'agent').glob('*.py')):
         if not path.name.startswith('test_'):assets['agent/'+path.name]=path.read_bytes()
+    development=ROOT/'pc/development'
+    for name in json.loads((development/'release-files.json').read_text(encoding='utf-8')):
+        source=development/name
+        if source.is_symlink() or not source.is_file() or not source.resolve().is_relative_to(development.resolve()):
+            raise ValueError('Unsafe development runtime release input')
+        assets['agent/development/'+name]=source.read_bytes()
     assets['agent/tool-definitions.json']=(ROOT/'agent/tool-definitions.json').read_bytes()
+    assets['agent/development-engine-lock.json']=(ROOT/'agent/development-engine-lock.json').read_bytes()
+    assets['agent/relocate_elf.py']=(ROOT/'scripts/relocate_elf.py').read_bytes()
     for name in ('SKILL.md','services.md'):assets['agent/support/'+name]=(ROOT/'agent/support'/name).read_bytes()
     assets['agent/graph-runtime.zip']=(ROOT/'agent/graph-runtime.zip').read_bytes()
     for path in sorted((ROOT/'agent/memory-runtime').iterdir()):
         if path.name=='codaki-external.mjs' or path.name.startswith('LICENSE.'):assets['agent/memory-runtime/'+path.name]=path.read_bytes()
     assets['agent/runtime_probe.py']=(ROOT/'device-runtime/runtime_probe.py').read_bytes()
-    manifest={'version':'0.2.5','architecture':'arm64-v8a','origin':inventory['origin'],'packages':inventory['packages'],
+    manifest={'version':'0.3.0','architecture':'arm64-v8a','origin':inventory['origin'],'packages':inventory['packages'],
               'native':provenance,'links':links,'files':{name:hashlib.sha256(raw).hexdigest() for name,raw in assets.items()}}
     assets['runtime-manifest.json']=(json.dumps(manifest,sort_keys=True,indent=2)+'\n').encode()
     for name,items,prefix in [('native.zip',native,'lib/arm64-v8a/'),('runtime.zip',assets,'')]:

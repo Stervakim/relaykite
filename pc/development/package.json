@@ -1,0 +1,13 @@
+{
+  "name": "relaykite-free-ui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Optional manually authenticated browser transport for RelayKite development",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "check": "node --check free-ui.mjs",
+    "install-browser": "playwright install chromium"
+  },
+  "dependencies": { "playwright": "^1.58.0" }
+}

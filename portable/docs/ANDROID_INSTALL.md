@@ -1,14 +1,14 @@
-# INSTALL WITH CODEX — Codaki Portable Use 0.1.4
+# INSTALL WITH CODEX — Codaki Portable Use 0.1.5
 
 ## Что делать Codex
 
-Пользователь предоставляет ЭТОТ файл Codex, работающему на ПК с подключенным Android, и поручает установить или обновить **Codaki Portable Use**, не затрагивая другие программы. Репозиторий: https://github.com/kalabuxova1-hash/codaki-portable-use
+Пользователь предоставляет ЭТОТ файл Codex, работающему на ПК с подключенным Android, и поручает установить или обновить **Codaki Portable Use**, не затрагивая другие программы. Репозиторий: https://github.com/Stervakim/relaykite/tree/main/portable
 
 **Цель:** установить плагин из проверенных исходников безопасно. Работай самостоятельно, но **не делай необратимых изменений без подтверждения**; перед возможной перезагрузкой обязательно спроси владельца.
 
 ### 1. Проверка
 
-1. Скачай репозиторий из GitHub. Проверь структуру файлов и сравни версию `magisk/module.prop` (ожидается 0.1.4).
+1. Скачай репозиторий из GitHub. Проверь структуру файлов и сравни версию `magisk/module.prop` (ожидается 0.1.5).
 2. Проверь доступность `adb devices` и явно разрешенного устройства владельца.
 3. Проверь root через `adb shell su -c id`, наличие Magisk и подписанного native runtime RelayKite; при его отсутствии проверь уже установленный Termux Python 3.10+ с `ssl` и `sqlite3`.
 4. **Никогда** не устанавливай Magisk или root самостоятельно. Не меняй VPN, сеть, VLESS, Android Use, Mini Codex, launcher, политики безопасности или физический экран.
@@ -16,7 +16,7 @@
 
 ### 2. Скачать проверенный установочный архив
 
-Готовый ZIP включён в репозиторий: `dist/codaki-portable-use-0.1.4-android.zip`. Он содержит исходный Python-runtime, Magisk-модуль и два JAR (`core/display-engine.jar`, `core/ui-v2.jar`) из установленного экземпляра владельца.
+Готовый ZIP включён в репозиторий: `dist/codaki-portable-use-0.1.5-android.zip`. Он содержит исходный Python-runtime, Magisk-модуль и два JAR (`core/display-engine.jar`, `core/ui-v2.jar`) с исходниками в `android/java` и манифестом сборки в `core/build-manifest.json`.
 
 Скачай файл и **обязательно сравни SHA-256**:
 
@@ -29,7 +29,7 @@
 Если нужна самостоятельная пересборка, в корне репозитория есть исходники и два JAR. Запусти:
 
 ```sh
-python3 scripts/build_module.py --output codaki-portable-use-0.1.4-android.zip
+python3 scripts/build_module.py --output codaki-portable-use-0.1.5-android.zip
 ```
 
 Если хочешь предоставить другие проверенные JAR, используй флаги `--display-jar /ABS/PATH/display-engine.jar --ui-jar /ABS/PATH/ui-v2.jar`. Установка в пункте 4 рассчитана на готовый ZIP.
@@ -39,8 +39,8 @@ python3 scripts/build_module.py --output codaki-portable-use-0.1.4-android.zip
 ### 4. Установка **на новое устройство** (после проверок)
 
 ```sh
-adb push codaki-portable-use-0.1.4-android.zip /data/local/tmp/codaki-portable-use-0.1.4-android.zip
-adb shell su -c 'magisk --install-module /data/local/tmp/codaki-portable-use-0.1.4-android.zip'
+adb push codaki-portable-use-0.1.5-android.zip /data/local/tmp/codaki-portable-use-0.1.5-android.zip
+adb shell su -c 'magisk --install-module /data/local/tmp/codaki-portable-use-0.1.5-android.zip'
 ```
 
 Синтаксис установки Magisk уточни на устройстве. Если приложение Magisk требует установку через интерфейс, не подменяй его неофициальными командами.
@@ -50,7 +50,7 @@ adb shell su -c 'magisk --install-module /data/local/tmp/codaki-portable-use-0.1
 ### 5. Режим и связь с ChatGPT
 
 - Локальный режим: без `agent.json` запускается `portable local` с доступом через **root-only** Unix socket.
-- Для управления **через ChatGPT** потребуется собственное корректно настроенное HTTPS relay, регистрация плагина и приватный `agent.json` (схема: `magisk/agent.example.json`). Не выдумывай сервер, токен и не копируй их из других установок без разрешения.
+- Для RelayKite 0.3.0 достаточно локального root-only IPC: существующий RelayKite обращается к этому backend через свой плагин. Второй плагин и `agent.json` не нужны. Отдельный облачный режим Portable требует собственного relay и конфигурации; не копируй чужие ключи.
 - Конфигурация должна храниться только на устройстве с правами 0600. Не публикуй данные в GitHub, логи, чат или отчет.
 
 ### 6. Проверка

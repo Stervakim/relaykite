@@ -19,7 +19,7 @@ import urllib.parse
 import urllib.request
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 
-VERSION = '0.2.5'
+VERSION = '0.3.0'
 CAPABILITIES = {'terminal', 'files_read', 'files_write', 'codex'}
 OPERATIONS = {'pc_status': None, 'pc_terminal': 'terminal', 'pc_read_file': 'files_read',
               'pc_write_file': 'files_write', 'pc_list_files': 'files_read', 'pc_codex': 'codex'}
@@ -27,6 +27,7 @@ PORTABLE_OPERATIONS=('apps','capabilities','diagnostics','session_start','sessio
 OPERATIONS.update({'pc_use_'+op:'terminal' for op in PORTABLE_OPERATIONS})
 OPERATIONS['pc_memory_summarize']=None
 OPERATIONS['pc_memory_model_remove']=None
+OPERATIONS['relaykite_dev']='codex'
 MAX_OUTPUT = 24000  # UTF-8 JSON expansion remains below the relay result limit.
 
 
@@ -170,6 +171,14 @@ def execute(tool, args, config, base, scope=None):
     cap = OPERATIONS[tool]
     if cap and cap not in config.get('capabilities', []): raise PermissionError('Capability disabled locally')
     if not isinstance(args, dict): raise ValueError('Arguments object required')
+    if tool == 'relaykite_dev':
+        if not isinstance(scope, str) or not scope:
+            raise PermissionError('Authenticated pairing scope required for development')
+        from development.client import call
+        local = dict(args)
+        if local.get('operation') == 'start':
+            local['workspace'] = str(allowed_path(local.get('workspace'), config, base))
+        return call(local, base, scope=scope)
     if tool=='pc_memory_model_remove':
         if args:raise ValueError('Model cleanup accepts no path or command')
         from model_runtime import remove

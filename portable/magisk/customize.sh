@@ -7,7 +7,7 @@ DATA=/data/adb/codaki-portable-use
 CORE=/data/local/tmp/codaki-portable-core
 umask 077
 ui_print 'Codaki Portable Use: independent experimental module'
-test ! -d "$DATA" || abort 'Existing Portable Use data found. Upgrade with scripts/install_android.py to preserve rollback.'
+test ! -d "$DATA" || abort 'Existing Portable Use data found. Follow CODEX_INSTALL.md for a reviewed idle upgrade with backup; do not erase owner state.'
 test ! -d "$CORE" || abort 'Existing Portable Use core found. Inspect before install.'
 PYTHON=
 PREFIX=

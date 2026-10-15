@@ -26,7 +26,7 @@ def validate(values, base=BASE, module=MODULE):
     if not isinstance(values, dict):
         raise ValueError('Configuration must be a JSON object')
     allowed = {'relay_url','agent_token','sites_authorization','poll_seconds',
-               'state_dir','memory_dir','disable_file','outbound_proxy'}
+               'state_dir','memory_dir','disable_file','outbound_proxy','additional_relays'}
     if set(values)-allowed:
         raise ValueError('Unknown configuration fields')
     url = values.get('relay_url', '')
@@ -88,6 +88,18 @@ def validate(values, base=BASE, module=MODULE):
     for key in ('state_dir','memory_dir','disable_file'):
         if key in values and values[key]!=result[key]:
             raise ValueError('Runtime paths must use this installation’s private directories')
+    if 'additional_relays' in values:
+        extra=values['additional_relays']
+        if not isinstance(extra,list) or len(extra)>3:raise ValueError('Use at most three explicitly owned additional relays')
+        connections=[];seen={result['relay_url'].casefold()}
+        fields={'relay_url','agent_token','sites_authorization','outbound_proxy'}
+        for item in extra:
+            if not isinstance(item,dict) or set(item)-fields:raise ValueError('Additional relays may contain only connection credentials and local proxy')
+            checked=validate(item,base,module)
+            identity=checked['relay_url'].casefold()
+            if identity in seen:raise ValueError('Duplicate relay connection')
+            seen.add(identity);connections.append({key:checked[key] for key in fields})
+        result['additional_relays']=connections
     return result
 
 

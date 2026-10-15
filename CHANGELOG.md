@@ -1,4 +1,4 @@
-# RelayKite 0.2.5 — Let ChatGPT use your devices
+# RelayKite 0.3.0 — Autonomous original Codex
 
 **Let ChatGPT tap, swipe and run tasks on your Android phone and Windows PC.** RelayKite connects your conversation to local device agents through your own private HTTPS MCP relay.
 
@@ -14,6 +14,20 @@ Previously **Codaki Mini Codex**. Archive filenames and internal IDs keep their 
 ---
 
 # Changelog
+
+## 0.3.0 — Autonomous original Codex
+
+Adds durable phone-local development through original Codex 0.154.0 and saved
+ChatGPT conversations: native patch/shell/Git, sequential tools, bounded context,
+original compaction, checkpoints, run controls and verification. The plugin
+remains the conversation interface. A reviewed SHA-256 lock and staged installer
+supply the native engine without a Termux process or PC. Additional owner relays
+share one executor with isolated receipt namespaces. Android and PC packages use
+the same blue icon and RelayKite · Codex Android / RelayKite · Codex names.
+
+Android root has no sandbox isolation. Native image input is disabled and
+ChatGPT plugins are not automatically Codex tools. See docs/development-progress.md
+for the installed-device evidence and remaining compatibility limits.
 
 ## 0.2.5 — Native runtime and durable device work
 
