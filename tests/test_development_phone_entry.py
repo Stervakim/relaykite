@@ -3,6 +3,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import stat
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -18,11 +19,13 @@ from development import client
 
 
 class RootOwnedFixturePath(type(Path())):
-    """Represent Android root-owned fixtures without requiring host root."""
+    """Represent Android private root-owned files, independent of host/umask."""
     fixture_uid = 0
+    fixture_permissions = 0o700
 
     def stat(self, *, follow_symlinks=True):
         values = list(super().stat(follow_symlinks=follow_symlinks))
+        values[0] = stat.S_IFMT(values[0]) | self.fixture_permissions
         values[4] = self.fixture_uid
         return os.stat_result(values)
 
@@ -45,18 +48,21 @@ class PhoneDevelopmentTests(unittest.TestCase):
             (self.engine / name).chmod(0o755)
         self.patches = [patch.object(native_phone, 'SUPPORT_BASE', self.base),
                         patch.object(development_tools, 'Path', RootOwnedFixturePath),
+                        patch.object(development_tools, 'os', SimpleNamespace(name='posix', environ=os.environ)),
                         patch.object(native_phone, 'runtime_identity', return_value={'mode':'root','uid':0,'root_active':True}),
                         patch('development.supervisor.execution_profile', return_value={'policy':'android-root'})]
         for entry in self.patches: entry.start(); self.addCleanup(entry.stop)
 
-    def test_non_root_engine_and_policy_are_rejected_on_android(self):
+    def test_non_root_or_writable_engine_and_policy_are_rejected_on_android(self):
         android_os = SimpleNamespace(name='posix', environ=os.environ)
-        with patch.object(development_tools, 'os', android_os), \
-                patch.object(RootOwnedFixturePath, 'fixture_uid', 10001):
-            with self.assertRaisesRegex(PermissionError, 'root-owned'):
-                development_tools.engine_environment(self.base)
-            with self.assertRaisesRegex(PermissionError, 'root-owned'):
-                development_tools.selected_workspace(self.base, str(self.workspace))
+        for uid, permissions in [(10001, 0o700), (0, 0o702)]:
+            with self.subTest(uid=uid, permissions=permissions), \
+                    patch.object(development_tools, 'os', android_os), \
+                    patch.multiple(RootOwnedFixturePath, fixture_uid=uid, fixture_permissions=permissions):
+                with self.assertRaisesRegex(PermissionError, 'root-owned'):
+                    development_tools.engine_environment(self.base)
+                with self.assertRaisesRegex(PermissionError, 'root-owned'):
+                    development_tools.selected_workspace(self.base, str(self.workspace))
 
     def call(self, **kwargs):
         function = getattr(native_phone, 'phone_development', None)
