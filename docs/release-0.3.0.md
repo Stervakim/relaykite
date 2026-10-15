@@ -24,7 +24,7 @@ The public templates contain no personal connection; deploy your own private rel
 
 The installed phone completed actual Codex patch/shell/Git and Android MCP runs
 with explicit verification. The final reply-binding implementation also completed
-a fresh real-model task. Host checks covered 216 repository, 124 agent, three PC,
+a fresh real-model task. Host checks covered 216 repository, 126 agent, three PC,
 131 Portable and 22 relay tests, with documented opt-in/platform skips.
 See [evidence and limits](development-progress.md).
 

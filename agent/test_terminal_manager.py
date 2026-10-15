@@ -82,13 +82,18 @@ class TerminalTests(unittest.TestCase):
         self.assertFalse(self.manager.list()[0]['running'])
     def test_restart_reaps_only_the_recorded_owned_process_generation(self):
         self.manager.close()
-        code='''import sys,time,os,json
+        code='''import sys,time,os,json,base64
 from terminal_manager import TerminalManager
 shell="/system/bin/sh" if os.path.exists("/system/bin/sh") else "/bin/sh"
 backend=lambda mode:([shell],{"PATH":"/system/bin:/usr/bin:/bin"},None)
 m=TerminalManager(sys.argv[1],backend=backend)
-out=m.open("crash_process_1",mode="system",cwd="/data/local/tmp" if os.path.exists("/system/bin/sh") else "/tmp",command="sleep 20")
-print(json.dumps(out),flush=True);time.sleep(.2);os._exit(0)
+out=m.open("crash_process_1",mode="system",cwd="/data/local/tmp" if os.path.exists("/system/bin/sh") else "/tmp",command="trap '' HUP; printf crash-fixture-ready; exec sleep 20")
+until=time.monotonic()+3
+while time.monotonic()<until:
+    if b"crash-fixture-ready" in base64.b64decode(m.read(out["terminal_id"],0,65536)["base64"]):break
+    time.sleep(.01)
+else:raise RuntimeError("Crash fixture did not become ready")
+print(json.dumps(out),flush=True);os._exit(0)
 '''
         env=dict(os.environ,PYTHONPATH=str(Path(__file__).parent))
         child=subprocess.run([sys.executable,'-c',code,str(self.path)],capture_output=True,text=True,env=env,timeout=5)

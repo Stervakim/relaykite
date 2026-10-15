@@ -5,6 +5,30 @@ sys.path.insert(0,str(Path(__file__).parent))
 from memory_bridge import MemoryBridge
 
 class BridgeTests(unittest.TestCase):
+ def test_runtime_symlinks_do_not_block_saving_or_follow_external_targets(self):
+  from memory_bridge import allocated_bytes
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);data=root/'memory';data.mkdir();outside=root/'outside';outside.write_bytes(b'x'*100000)
+   runtime=root/'runtime';runtime.mkdir();link=runtime/'node'
+   try:link.symlink_to(outside)
+   except OSError:self.skipTest('Host cannot create symlinks')
+   info=link.lstat();expected=getattr(info,'st_blocks',0)*512 or info.st_size
+   self.assertEqual(allocated_bytes(link,allow_symlinks=True),expected)
+   p=root/'config.json';p.write_text(json.dumps({'url':'http://127.0.0.1:8420','key':'k'*48,'data_dir':str(data),'accounting_roots':[str(runtime),str(data)]}))
+   bridge=MemoryBridge(p)
+   with patch.object(bridge,'request',return_value={'saved':True}) as request:
+    self.assertTrue(bridge.save('title','content',[])['saved'])
+    request.assert_called_once()
+ def test_memory_record_symlinks_remain_rejected_with_runtime_accounting(self):
+  with tempfile.TemporaryDirectory() as d:
+   root=Path(d);data=root/'memory';data.mkdir();outside=root/'outside';outside.write_bytes(b'x')
+   try:(data/'record').symlink_to(outside)
+   except OSError:self.skipTest('Host cannot create symlinks')
+   p=root/'config.json';p.write_text(json.dumps({'url':'http://127.0.0.1:8420','key':'k'*48,'data_dir':str(data),'accounting_roots':[d]}))
+   bridge=MemoryBridge(p)
+   with patch.object(bridge,'request') as request:
+    with self.assertRaisesRegex(ValueError,'symlink'):bridge.save('title','content',[])
+    request.assert_not_called()
  @unittest.skipUnless(hasattr(socket,'AF_UNIX'),'Unix socket required')
  def test_accounting_ignores_live_ipc_socket_but_counts_regular_storage(self):
   from memory_bridge import allocated_bytes

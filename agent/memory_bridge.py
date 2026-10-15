@@ -9,23 +9,31 @@ from runtime_paths import BASE
 DEFAULT_CONFIG=BASE/'memory-service.json'
 class MemoryUnavailable(RuntimeError):pass
 
-def allocated_bytes(path:Path)->int:
-    if path.is_symlink():raise ValueError('Storage symlink rejected')
-    if not path.exists():return 0
-    if path.is_file():
-        s=path.stat();return getattr(s,'st_blocks',0)*512 or s.st_size
-    if not path.is_dir():return 0  # IPC sockets/FIFOs do not contain stored records.
-    return sum(allocated_bytes(p) for p in path.iterdir())
+def allocated_bytes(path:Path,*,allow_symlinks=False)->int:
+    try:s=path.lstat()
+    except FileNotFoundError:return 0
+    if stat.S_ISLNK(s.st_mode):
+        if not allow_symlinks:raise ValueError('Storage symlink rejected')
+        # Account only the link inode. Never traverse a runtime/project link,
+        # including a broken link, external directory or a cycle.
+        return getattr(s,'st_blocks',0)*512 or s.st_size
+    if stat.S_ISREG(s.st_mode):return getattr(s,'st_blocks',0)*512 or s.st_size
+    if not stat.S_ISDIR(s.st_mode):return 0  # IPC sockets/FIFOs have no records.
+    return sum(allocated_bytes(p,allow_symlinks=allow_symlinks) for p in path.iterdir())
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):raise RuntimeError('Memory service redirect rejected')
 
 class MemoryBridge:
     def __init__(self,configuration:Path=DEFAULT_CONFIG):
-        self.configured=False;self.config={}
+        self.configured=False;self.config={};self.data_dir=None
         if not configuration.exists():return
         if configuration.is_symlink():raise ValueError('Memory configuration symlink rejected')
         self.config=json.loads(configuration.read_text(encoding='utf-8'))
+        data_dir=self.config.get('data_dir')
+        if data_dir is not None:
+            if not isinstance(data_dir,str) or not Path(data_dir).is_absolute():raise ValueError('Expected absolute memory data_dir')
+            self.data_dir=Path(data_dir)
         reserve=self.config.get('external_reserved_bytes',0)
         if type(reserve)!=int or not 0<=reserve<CAP:raise ValueError('Invalid external storage reservation')
         u=urllib.parse.urlsplit(self.config.get('url',''))
@@ -55,7 +63,11 @@ class MemoryBridge:
         return data
     def save(self,title:str,content:str,tags:list,memory:dict|None=None)->dict:
         roots=[Path(p) for p in self.config.get('accounting_roots',[])]
-        if self.config.get('external_reserved_bytes',0)+sum(allocated_bytes(p) for p in roots)+len(content.encode())*8+65536>CAP:raise ValueError('Combined Codaki storage quota exceeded')
+        # Memory records remain a strict, link-free store. Broader accounting
+        # roots also contain the Codex/Git runtime and owner projects, where
+        # legitimate executable links must not prevent saving unrelated memory.
+        if self.data_dir is not None:allocated_bytes(self.data_dir)
+        if self.config.get('external_reserved_bytes',0)+sum(allocated_bytes(p,allow_symlinks=self.data_dir is not None) for p in roots)+len(content.encode())*8+65536>CAP:raise ValueError('Combined Codaki storage quota exceeded')
         p={'title':title,'content':content,'tags':tags}
         if memory is not None:p['memory']=memory
         return self.request('/save',p)
