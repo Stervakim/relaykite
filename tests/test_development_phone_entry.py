@@ -29,6 +29,9 @@ class RootOwnedFixturePath(type(Path())):
         values[4] = self.fixture_uid
         return os.stat_result(values)
 
+    def lstat(self):
+        return self.stat(follow_symlinks=False)
+
 
 class PhoneDevelopmentTests(unittest.TestCase):
     def setUp(self):
