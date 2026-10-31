@@ -7,6 +7,20 @@ A run can continue after the invoking response ends. Internet, login, supported
 account features and available quota remain required. Temporary chats and model
 API keys are not used by this transport.
 
+## Source parity status (2026-10-31)
+
+The current `main` development engine lock pins the official ARM64 Linux-musl
+Codex CLI 0.165.0 archive with GitHub release SHA-256
+`6522e056d0be7f531da915c9a81ae05bc70811b782542499cc0a9776d3abf5d3`;
+the extracted Codex binary is
+`b32ece31af06440da980b733fb8fefdd1f193439595fda84096f1caaceec543f`.
+Both hashes were checked from downloaded upstream bytes. On the owner's rooted
+Android 17 device the upstream binary passed `--version` and
+`app-server --help`, but **no fresh end-to-end Codex task was confirmed**.
+The owner's existing 0.165.0 executable is Android-target and has different
+bytes. The published v0.3.0 installer remains pinned to 0.154.0; source changes
+are not a replacement for producing and verifying a new signed release.
+
 ## Installation and lifecycle
 
 Use the matching signed runtime APK and Magisk component, with the release
