@@ -65,6 +65,18 @@ For assisted installation, give Codex the release ZIP and checksum file:
 
 Initial Android preparation may need a computer. The installer does not install root or enable unavailable account features. [Compatibility](docs/compatibility.md) · [Access and data](docs/security.md).
 
+## Source status after 0.3.0 (not yet a packaged release)
+
+The `main` source now pins verified upstream **Codex CLI 0.165.0** for the next release.
+This was checked against the official GitHub release archive and its extracted binary SHA-256,
+and the ARM64 Linux-musl executable passed `--version` and `app-server --help`
+on the tested rooted Android phone. The installed author's 0.165.0 binary is an
+Android-target build with different bytes, so executable identity or complete
+end-to-end parity is **not** claimed. The published `v0.3.0` ZIP remains on
+Codex 0.154.0 until new signed and tested packages are published. Do not mix
+ZIP/APK components from unrelated versions or assume a GitHub source commit
+automatically updates your installed agent.
+
 ## Release 0.3.0
 
 Original Codex 0.154.0 runs on the phone with native patches, shell, Git and semantic Android MCP tools. A durable supervisor continues a task after the outer ChatGPT answer, records checkpoints and receipts, and supports pause, resume and cancellation. Model requests use a normal saved ChatGPT conversation; no API key or temporary chat is required for this transport. The installed ChatGPT app, an unlocked device, network access and account capacity remain necessary.

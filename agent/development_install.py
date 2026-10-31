@@ -250,6 +250,40 @@ def build_engine(lock, inputs, target, runtime):
     return manifest
 
 
+def publish_policy_if_absent(pending, policy):
+    """Publish an owner policy without replacing one created by another worker.
+
+    Android embedded Python may not export os.link. The O_EXCL fallback creates
+    the path exclusively and cleans it up on a write error; power loss during
+    the tiny write fails closed (a partial policy must be inspected).
+    """
+    try:
+        try:
+            os.link(pending, policy)
+            return
+        except FileExistsError:
+            return
+    except (AttributeError, NotImplementedError):
+        pass
+    except OSError as error:
+        import errno
+        if error.errno not in (errno.ENOSYS, errno.ENOTSUP, errno.EPERM):
+            raise
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_NOFOLLOW', 0)
+    try:
+        fd = os.open(policy, flags, 0o600)
+    except FileExistsError:
+        return
+    try:
+        with os.fdopen(fd, 'wb') as output:
+            output.write(pending.read_bytes())
+            output.flush()
+            os.fsync(output.fileno())
+    except BaseException:
+        policy.unlink(missing_ok=True)
+        raise
+
+
 @contextmanager
 def installation_lock(base):
     import fcntl
@@ -287,8 +321,7 @@ def install(base, runtime, *, lock=None, inputs=None, execute=True):
                         json.dump({'workspace_roots':[str(projects)]},output)
                         output.flush();os.fsync(output.fileno())
                     pending_policy.chmod(0o600)
-                    try:os.link(pending_policy,policy)
-                    except FileExistsError:pass  # Preserve an owner policy created concurrently.
+                    publish_policy_if_absent(pending_policy,policy)
                 finally:pending_policy.unlink(missing_ok=True)
             # Publish last. A crash after policy preparation remains retryable;
             # a failed preparation never leaves an active but unusable engine.

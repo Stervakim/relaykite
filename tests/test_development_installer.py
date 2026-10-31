@@ -33,7 +33,9 @@ def package(entries):
 class EngineInstallerTests(unittest.TestCase):
     def test_release_lock_pins_only_official_https_sources(self):
         lock=installer.load_lock()
-        self.assertEqual(lock['codex']['version'],'0.154.0')
+        self.assertEqual(lock['codex']['version'],'0.165.0')
+        self.assertEqual(lock['codex']['sha256'],'6522e056d0be7f531da915c9a81ae05bc70811b782542499cc0a9776d3abf5d3')
+        self.assertEqual(lock['codex']['binary_sha256'],'b32ece31af06440da980b733fb8fefdd1f193439595fda84096f1caaceec543f')
         self.assertTrue({'git','ripgrep','ca-certificates'}<={p['name'] for p in lock['packages']})
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'lock.json'
@@ -94,12 +96,28 @@ class EngineInstallerTests(unittest.TestCase):
             self.assertFalse((base/'development-engine').exists());self.assertFalse((base/'development-policy.json').exists())
             self.assertEqual(list(base.iterdir()),[])
 
+    def test_policy_creation_without_hardlink_keeps_owner_exclusive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base=Path(directory)
+            def build(lock, inputs, target, runtime):
+                target.mkdir()
+                (target/'manifest.json').write_text('staged')
+                return {'codex_version':lock['codex']['version']}
+            with patch.object(installer,'installation_lock',return_value=contextlib.nullcontext()):
+                with patch.object(installer,'build_engine',side_effect=build):
+                    with patch.object(installer.os,'link',side_effect=NotImplementedError('Android embedded Python'),create=True):
+                        result=installer.install(base,base/'runtime',inputs={},execute=False)
+            self.assertEqual(result['state'],'installed')
+            policy=base/'development-policy.json'
+            self.assertEqual(json.loads(policy.read_text()),{'workspace_roots':[str(base/'projects')]})
+            self.assertEqual(policy.stat().st_mode & 0o777,0o600)
+
     def test_policy_preparation_failure_keeps_installation_retryable(self):
         with tempfile.TemporaryDirectory() as directory:
             base=Path(directory);original=installer.private_directory
             def build(lock,inputs,target,runtime):
                 target.mkdir();(target/'manifest.json').write_text('staged')
-                return {'codex_version':'0.154.0'}
+                return {'codex_version':'0.165.0'}
             def blocked(path):
                 if Path(path)==base/'projects':raise PermissionError('injected project-storage failure')
                 return original(path)

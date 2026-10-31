@@ -15,6 +15,14 @@ Previously **Codaki Mini Codex**. Archive filenames and internal IDs keep their 
 
 # Changelog
 
+## Unreleased — upstream Codex 0.165.0 source parity
+
+The source-tree engine lock now pins the verified official 0.165.0 ARM64 Linux-musl
+archive and extracted executable SHA-256, and the installer lock test covers both.
+This changes **future builds only**: existing v0.3.0 release assets and the author's
+Android-target CLI are unchanged. See docs/development-progress.md for limits.
+No new signed APK/ZIP or complete third-party Android acceptance is claimed.
+
 ## 0.3.0 — Autonomous original Codex
 
 Adds durable phone-local development through original Codex 0.154.0 and saved

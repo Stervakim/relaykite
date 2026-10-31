@@ -2,12 +2,12 @@
   "format": 1,
   "architecture": "aarch64",
   "codex": {
-    "version": "0.154.0",
-    "url": "https://github.com/openai/codex/releases/download/rust-v0.154.0/codex-aarch64-unknown-linux-musl.tar.gz",
-    "sha256": "583b48df32804213bdcd338c2e5adb06b34340821fa757a726cc0a524fa33c27",
-    "binary_sha256": "9b7c1c7abdc26fc3c4f47c77656a8e9121def5483dbae830ef1ee561758448a9",
+    "version": "0.165.0",
+    "url": "https://github.com/openai/codex/releases/download/rust-v0.165.0/codex-aarch64-unknown-linux-musl.tar.gz",
+    "sha256": "6522e056d0be7f531da915c9a81ae05bc70811b782542499cc0a9776d3abf5d3",
+    "binary_sha256": "b32ece31af06440da980b733fb8fefdd1f193439595fda84096f1caaceec543f",
     "license": "Apache-2.0",
-    "source": "https://github.com/openai/codex/tree/rust-v0.154.0"
+    "source": "https://github.com/openai/codex/tree/rust-v0.165.0"
   },
   "packages": [
     {

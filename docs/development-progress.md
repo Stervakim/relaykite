@@ -3,6 +3,19 @@
 Updated 2026-10-15. This file records tested source and installed-device behavior;
 the GitHub release state must be checked separately.
 
+## Source parity follow-up — 2026-10-31 (not a release)
+
+Installed generic agent/Magisk scripts and the public source checkout matched by
+content, including bundled autonomous-development modules (the memory JS bundle
+had only CRLF differences). The installed development-engine CLI reports 0.165.0
+and uses an Android-target executable; the public v0.3.0 ZIP still pins 0.154.0.
+The main-branch lock was advanced to the **official Linux-musl upstream 0.165.0**
+artifact, with GitHub API digest and separately verified extracted-binary SHA-256.
+The tested upstream executable responded to `--version` and `app-server --help`
+on the Android phone. A full saved-conversation task, Android compatibility on
+other devices, and a newly signed public release are **not** verified here.
+The earlier 0.3.0 acceptance below is historical and must not be relabeled.
+
 Implemented: durable runs/events/receipts/checkpoints, original Codex app-server,
 saved-conversation Android/desktop model transports, native patch/shell/Git,
 verification continuations, bounded context, original compaction, Android
